@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 1 — แนะนำรายวิชา + พื้นฐาน Object Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0f14;
+    --surface: #111318;
+    --card: #181c24;
+    --border: #252b38;
+    --accent: #00e5c0;
+    --accent2: #7c5cfc;
+    --amber: #f5a623;
+    --red: #ff4f64;
+    --text: #d8dde8;
+    --muted: #6b7590;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Sarabun', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* HEADER */
+  header { padding: 56px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 48px; }
+  .week-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(124,92,252,.12); border: 1px solid rgba(124,92,252,.35);
+    color: var(--accent2); font-family: var(--mono); font-size: 12px;
+    padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+  .week-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  h1 { font-size: clamp(28px,5vw,48px); font-weight: 700; color: #fff; line-height: 1.2; margin-bottom: 16px; }
+  h1 span { color: var(--accent2); }
+  .sub { font-size: 18px; color: var(--muted); max-width: 620px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 28px; }
+  .meta-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+  /* SECTION */
+  .section { margin-bottom: 52px; animation: fadeUp .5s ease both; }
+  .section:nth-child(2){animation-delay:.05s} .section:nth-child(3){animation-delay:.1s}
+  .section:nth-child(4){animation-delay:.15s} .section:nth-child(5){animation-delay:.2s}
+  .section:nth-child(6){animation-delay:.25s} .section:nth-child(7){animation-delay:.3s}
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+  .section-label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent2); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  h2 { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 20px; }
+
+  /* ROADMAP */
+  .roadmap { display: flex; flex-direction: column; gap: 0; }
+  .road-item {
+    display: flex; gap: 0; position: relative;
+  }
+  .road-left {
+    display: flex; flex-direction: column; align-items: center;
+    width: 48px; flex-shrink: 0;
+  }
+  .road-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--accent2);
+    background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent2);
+    flex-shrink: 0; z-index: 1; margin-top: 14px;
+    transition: all .2s;
+  }
+  .road-item:hover .road-dot { background: var(--accent2); color: #fff; }
+  .road-line { width: 2px; flex: 1; background: var(--border); min-height: 20px; }
+  .road-item:last-child .road-line { display: none; }
+  .road-content {
+    flex: 1; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; margin: 8px 0 8px 16px;
+    transition: border-color .2s;
+  }
+  .road-item:hover .road-content { border-color: var(--accent2); }
+  .road-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .road-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .road-time {
+    font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    margin-top: 8px; opacity: .7;
+  }
+
+  /* CARDS GRID */
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .card-icon { font-size: 28px; margin-bottom: 10px; }
+  .card-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .card-body { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* CODE */
+  .code-block { background: #0a0c10; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+  .code-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .code-lang { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .code-copy { font-family: var(--mono); font-size: 11px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: all .15s; }
+  .code-copy:hover { color: var(--accent); border-color: var(--accent); }
+  pre { padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.75; font-family: var(--mono); }
+  .kw{color:#c678dd} .fn{color:#61afef} .st{color:#98c379} .cm{color:#5c6370;font-style:italic} .nu{color:#d19a66} .im{color:#e06c75}
+
+  /* TIMELINE VISUAL */
+  .yolo-timeline {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px;
+    overflow-x: auto;
+  }
+  .timeline-row {
+    display: flex; align-items: center; gap: 0;
+    min-width: 600px; position: relative; padding: 12px 0;
+  }
+  .tl-node {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; cursor: pointer; position: relative;
+  }
+  .tl-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-bottom: 6px; transition: all .2s; position: relative; z-index: 1;
+  }
+  .tl-node:hover .tl-dot, .tl-node.hi .tl-dot { border-color: var(--accent2); background: rgba(124,92,252,.2); color: var(--accent2); }
+  .tl-node.current .tl-dot { border-color: var(--accent); background: rgba(0,229,192,.2); color: var(--accent); box-shadow: 0 0 0 4px rgba(0,229,192,.12); }
+  .tl-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; }
+  .tl-node.current .tl-label { color: var(--accent); }
+  .tl-year { font-size: 10px; color: var(--border); margin-top: 2px; }
+  .tl-connector { flex: 1; height: 2px; background: var(--border); margin-bottom: 24px; }
+  .tl-info {
+    background: rgba(124,92,252,.08); border: 1px solid rgba(124,92,252,.25);
+    border-radius: 8px; padding: 14px 18px; margin-top: 20px;
+    font-size: 13px; color: var(--text); line-height: 1.6;
+    display: none;
+  }
+  .tl-info.show { display: block; }
+  .tl-info strong { color: var(--accent2); font-family: var(--mono); }
+
+  /* QUIZ SECTION */
+  .quiz-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+  }
+  .quiz-q { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 16px; }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    cursor: pointer; font-size: 14px; color: var(--text);
+    transition: all .15s; display: flex; gap: 10px; align-items: center;
+  }
+  .quiz-opt:hover { border-color: var(--accent2); }
+  .quiz-opt.correct { border-color: var(--accent); background: rgba(0,229,192,.08); color: var(--accent); }
+  .quiz-opt.wrong { border-color: var(--red); background: rgba(255,79,100,.08); color: var(--red); }
+  .opt-letter { font-family: var(--mono); font-size: 12px; opacity: .6; min-width: 20px; }
+  .quiz-result { margin-top: 14px; font-size: 14px; padding: 12px 16px; border-radius: 8px; display: none; }
+  .quiz-result.show { display: block; }
+  .quiz-result.ok { background: rgba(0,229,192,.08); border: 1px solid rgba(0,229,192,.3); color: var(--accent); }
+  .quiz-result.no { background: rgba(255,79,100,.08); border: 1px solid rgba(255,79,100,.3); color: var(--red); }
+  .quiz-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
+  .quiz-prog { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .btn-next {
+    background: rgba(124,92,252,.15); border: 1px solid rgba(124,92,252,.4);
+    color: var(--accent2); font-family: var(--mono); font-size: 12px;
+    padding: 8px 20px; border-radius: 8px; cursor: pointer;
+    transition: all .15s; display: none;
+  }
+  .btn-next.show { display: inline-block; }
+  .btn-next:hover { background: rgba(124,92,252,.25); }
+
+  /* USE CASE CARDS */
+  .usecase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; }
+  .uc-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px; text-align: center;
+    transition: all .2s; cursor: default;
+  }
+  .uc-card:hover { border-color: var(--amber); transform: translateY(-2px); }
+  .uc-icon { font-size: 32px; margin-bottom: 10px; }
+  .uc-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .uc-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* PROGRESS BAR (objectives) */
+  .obj-row { display: flex; flex-direction: column; gap: 14px; }
+  .obj-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .obj-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .obj-num-badge {
+    font-family: var(--mono); font-size: 10px; background: rgba(124,92,252,.15);
+    border: 1px solid rgba(124,92,252,.3); color: var(--accent2);
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .obj-text { font-size: 14px; color: var(--text); }
+  .bloom-tag {
+    margin-left: auto; font-size: 11px; font-family: var(--mono);
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .bloom-1 { background: rgba(0,229,192,.1); color: var(--accent); border: 1px solid rgba(0,229,192,.25); }
+  .bloom-2 { background: rgba(245,166,35,.1); color: var(--amber); border: 1px solid rgba(245,166,35,.25); }
+  .bloom-3 { background: rgba(124,92,252,.1); color: var(--accent2); border: 1px solid rgba(124,92,252,.25); }
+
+  /* ASSESS */
+  .assess-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; }
+  .assess-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; text-align: center; }
+  .assess-pct { font-size: 32px; font-weight: 700; font-family: var(--mono); }
+  .c1{color:var(--accent)} .c2{color:var(--accent2)} .c3{color:var(--amber)}
+  .assess-label { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  /* VIDEO SECTION */
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px,1fr)); gap: 20px; }
+  @media(max-width:500px){ .video-grid { grid-template-columns: 1fr; } }
+  .video-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+  .video-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .video-wrap {
+    position: relative; width: 100%; padding-bottom: 56.25%;
+    background: #000; cursor: pointer;
+  }
+  .video-thumb {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: .85; transition: opacity .2s;
+  }
+  .video-card:hover .video-thumb { opacity: 1; }
+  .play-btn {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(124,92,252,.85);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; transition: background .2s;
+  }
+  .video-card:hover .play-btn { background: var(--accent2); }
+  .play-btn svg { margin-left: 4px; }
+  .video-iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    border: none; display: none;
+  }
+  .video-meta { padding: 14px 18px; }
+  .video-tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .tag-demo { background: rgba(0,229,192,.1); color: var(--accent); border: 1px solid rgba(0,229,192,.25); }
+  .tag-app  { background: rgba(245,166,35,.1); color: var(--amber); border: 1px solid rgba(245,166,35,.25); }
+  .tag-industry { background: rgba(124,92,252,.1); color: var(--accent2); border: 1px solid rgba(124,92,252,.25); }
+  .video-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .video-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="week-pill">สัปดาห์ที่ 1 — Object Detection</div>
+    <h1>แนะนำรายวิชา +<br><span>พื้นฐาน Computer Vision</span></h1>
+    <p class="sub">เข้าใจภาพรวม pipeline การตรวจจับวัตถุ และลองมือกับ OpenCV ครั้งแรก</p>
+    <div class="meta-row">
+      <div class="meta-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        5 ชั่วโมง
+      </div>
+      <div class="meta-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        ทฤษฎี + ปฏิบัติ
+      </div>
+      <div class="meta-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        OpenCV · Google Colab
+      </div>
+    </div>
+  </header>
+
+  <!-- LEARNING OBJECTIVES -->
+  <div class="section">
+    <div class="section-label">ผลลัพธ์การเรียนรู้</div>
+    <div class="obj-row">
+      <div class="obj-item">
+        <div class="obj-header">
+          <span class="obj-num-badge">LO 01</span>
+          <span class="obj-text">อธิบาย Object Detection คืออะไร แตกต่างจาก Image Classification และ Segmentation ได้</span>
+          <span class="bloom-tag bloom-1">ความเข้าใจ</span>
+        </div>
+      </div>
+      <div class="obj-item">
+        <div class="obj-header">
+          <span class="obj-num-badge">LO 02</span>
+          <span class="obj-text">ยกตัวอย่าง use case ของ Object Detection ในงานจริงอย่างน้อย 3 อุตสาหกรรมได้</span>
+          <span class="bloom-tag bloom-2">การนำไปใช้</span>
+        </div>
+      </div>
+      <div class="obj-item">
+        <div class="obj-header">
+          <span class="obj-num-badge">LO 03</span>
+          <span class="obj-text">ติดตั้ง OpenCV และรัน pre-trained model detect วัตถุในภาพจริงได้สำเร็จ</span>
+          <span class="bloom-tag bloom-3">การปฏิบัติ</span>
+        </div>
+      </div>
+      <div class="obj-item">
+        <div class="obj-header">
+          <span class="obj-num-badge">LO 04</span>
+          <span class="obj-text">อธิบาย pipeline ของ Object Detection (Input → Model → Bounding Box → Output) ได้</span>
+          <span class="bloom-tag bloom-1">การวิเคราะห์</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USE CASES -->
+  <div class="section">
+    <div class="section-label">Object Detection ใช้งานที่ไหนบ้าง?</div>
+    <div class="usecase-grid">
+      <div class="uc-card">
+        <div class="uc-icon">🚗</div>
+        <div class="uc-title">รถยนต์ไร้คนขับ</div>
+        <div class="uc-desc">detect คน รถ ป้าย แบบ real-time</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🏭</div>
+        <div class="uc-title">ตรวจสอบสินค้า</div>
+        <div class="uc-desc">หาของเสียบนสายการผลิต</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">📷</div>
+        <div class="uc-title">กล้องวงจรปิด</div>
+        <div class="uc-desc">แจ้งเตือนเมื่อตรวจพบบุคคล</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🏥</div>
+        <div class="uc-title">การแพทย์</div>
+        <div class="uc-desc">detect เซลล์ผิดปกติในภาพ X-ray</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🛒</div>
+        <div class="uc-title">Retail อัตโนมัติ</div>
+        <div class="uc-desc">Amazon Go สแกนสินค้าไม่มีแคชเชียร์</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🛰️</div>
+        <div class="uc-title">ดาวเทียม</div>
+        <div class="uc-desc">นับรถ วิเคราะห์การเกษตรจากอวกาศ</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">⚽</div>
+        <div class="uc-title">กีฬา</div>
+        <div class="uc-desc">track ผู้เล่น วิเคราะห์ tactics</div>
+      </div>
+      <div class="uc-card">
+        <div class="uc-icon">🌾</div>
+        <div class="uc-title">เกษตรกรรม</div>
+        <div class="uc-desc">detect โรคพืช นับผลผลิตจากโดรน</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YOLO TIMELINE -->
+  <div class="section">
+    <div class="section-label">วิวัฒนาการโมเดล — YOLO Family</div>
+    <div class="yolo-timeline">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:20px;">// คลิกที่ node เพื่อดูรายละเอียด · สีเขียว = เวอร์ชันที่เราจะใช้เรียน</div>
+      <div class="timeline-row" id="tl-row"></div>
+      <div id="tl-detail" class="tl-info"></div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="section">
+    <div class="section-label">ตารางกิจกรรมสัปดาห์นี้</div>
+    <div class="roadmap">
+      <div class="road-item">
+        <div class="road-left"><div class="road-dot">1</div><div class="road-line"></div></div>
+        <div class="road-content">
+          <div class="road-title">🎯 Kick-off: Object Detection คืออะไร?</div>
+          <div class="road-desc">เปิดด้วยคลิป Tesla Autopilot และ CCTV AI — ถามนักศึกษาว่าเห็นอะไรเกิดขึ้น? บรรยายความแตกต่าง Classification vs Detection vs Segmentation พร้อมภาพเปรียบเทียบ</div>
+          <div class="road-time">⏱ 60 นาที · บรรยาย + อภิปราย</div>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-left"><div class="road-dot">2</div><div class="road-line"></div></div>
+        <div class="road-content">
+          <div class="road-title">🗺️ ภาพรวม Pipeline + YOLO Timeline</div>
+          <div class="road-desc">อธิบาย pipeline Input → Feature Extraction → Detection Head → NMS → Output ทบทวนวิวัฒนาการ YOLO v1 → v12 พร้อม infographic ทำความเข้าใจว่าทำไม YOLO ถึงครองตลาด</div>
+          <div class="road-time">⏱ 60 นาที · บรรยาย + คลิป</div>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-left"><div class="road-dot">3</div><div class="road-line"></div></div>
+        <div class="road-content">
+          <div class="road-title">💻 Lab: ติดตั้ง OpenCV + โหลดภาพครั้งแรก</div>
+          <div class="road-desc">เปิด Google Colab, รัน <code style="color:var(--accent2);background:rgba(124,92,252,.15);padding:1px 6px;border-radius:4px;font-size:12px">pip install opencv-python</code> โหลดภาพ, แปลง BGR→RGB, แสดงผล, ปรับ resize และทดลอง grayscale</div>
+          <div class="road-time">⏱ 60 นาที · hands-on Colab</div>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-left"><div class="road-dot">4</div><div class="road-line"></div></div>
+        <div class="road-content">
+          <div class="road-title">🤖 Lab: รัน Pre-trained YOLO ครั้งแรก!</div>
+          <div class="road-desc">ใช้ Ultralytics YOLOv8 detect วัตถุในภาพตัวเอง (จากโทรศัพท์) ดูผลลัพธ์ Bounding Box + Label + Confidence Score ทดลองเปลี่ยนภาพ เล่นกับ threshold</div>
+          <div class="road-time">⏱ 75 นาที · hands-on · wow moment 🔥</div>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-left"><div class="road-dot">5</div><div class="road-line"></div></div>
+        <div class="road-content">
+          <div class="road-title">📝 Wrap-up + Case Study Discussion</div>
+          <div class="road-desc">นักศึกษา 5 กลุ่ม เลือก industry 1 อย่าง นำเสนอ 3 นาที ว่า Object Detection ใช้แก้ปัญหาอะไรในอุตสาหกรรมนั้น สรุปรายวิชา 15 สัปดาห์ และมอบหมายงาน</div>
+          <div class="road-time">⏱ 45 นาที · กลุ่ม + สรุป</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE EXAMPLE -->
+  <div class="section">
+    <div class="section-label">โค้ดสำหรับ Lab วันนี้</div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · Lab 3 — OpenCV เบื้องต้น</span>
+        <button class="code-copy" onclick="copyCode('code1')">copy</button>
+      </div>
+      <pre id="code1"><span class="im">!pip install</span> <span class="st">opencv-python matplotlib</span> <span class="st">-q</span>
+
+<span class="kw">import</span> <span class="fn">cv2</span>
+<span class="kw">import</span> <span class="fn">matplotlib.pyplot</span> <span class="kw">as</span> plt
+<span class="kw">from</span> <span class="fn">google.colab</span> <span class="kw">import</span> <span class="fn">files</span>
+
+<span class="cm"># อัปโหลดภาพจากเครื่อง</span>
+uploaded = files.upload()
+filename = list(uploaded.keys())[<span class="nu">0</span>]
+
+<span class="cm"># โหลดภาพด้วย OpenCV (BGR by default)</span>
+img_bgr = cv2.imread(filename)
+img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+
+<span class="cm"># แสดงผล 3 รูปเปรียบเทียบ</span>
+fig, axes = plt.subplots(<span class="nu">1</span>, <span class="nu">3</span>, figsize=(<span class="nu">15</span>, <span class="nu">5</span>))
+axes[<span class="nu">0</span>].imshow(img_rgb);   axes[<span class="nu">0</span>].set_title(<span class="st">'Original (RGB)'</span>)
+axes[<span class="nu">1</span>].imshow(img_gray, cmap=<span class="st">'gray'</span>); axes[<span class="nu">1</span>].set_title(<span class="st">'Grayscale'</span>)
+axes[<span class="nu">2</span>].imshow(img_rgb[:<span class="nu">200</span>,:<span class="nu">200</span>]); axes[<span class="nu">2</span>].set_title(<span class="st">'Cropped (200×200)'</span>)
+
+<span class="fn">print</span>(<span class="st">f"ขนาดภาพ: {img_rgb.shape}"</span>)  <span class="cm"># (H, W, C)</span>
+plt.tight_layout(); plt.show()</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · Lab 4 — YOLOv8 ครั้งแรก</span>
+        <button class="code-copy" onclick="copyCode('code2')">copy</button>
+      </div>
+      <pre id="code2"><span class="im">!pip install</span> <span class="st">ultralytics -q</span>
+
+<span class="kw">from</span> <span class="fn">ultralytics</span> <span class="kw">import</span> <span class="fn">YOLO</span>
+<span class="kw">from</span> <span class="fn">PIL</span> <span class="kw">import</span> <span class="fn">Image</span>
+<span class="kw">import</span> <span class="fn">matplotlib.pyplot</span> <span class="kw">as</span> plt
+
+<span class="cm"># โหลด pre-trained model (โหลดอัตโนมัติครั้งแรก ~6MB)</span>
+model = YOLO(<span class="st">"yolov8n.pt"</span>)  <span class="cm"># n = nano (เล็กสุด เร็วสุด)</span>
+
+<span class="cm"># Detect วัตถุในภาพของเรา</span>
+results = model(filename, conf=<span class="nu">0.35</span>)
+
+<span class="cm"># แสดงผล + พิมพ์สิ่งที่ detect ได้</span>
+result = results[<span class="nu">0</span>]
+result_img = result.plot()  <span class="cm"># วาด bounding box บนภาพ</span>
+
+plt.figure(figsize=(<span class="nu">12</span>, <span class="nu">8</span>))
+plt.imshow(result_img[..., ::<span class="nu">-1</span>])
+plt.axis(<span class="st">'off'</span>); plt.title(<span class="st">'YOLOv8 Detection Result'</span>)
+plt.show()
+
+<span class="cm"># รายการสิ่งที่ detect ได้</span>
+<span class="kw">for</span> box <span class="kw">in</span> result.boxes:
+    cls = model.names[<span class="fn">int</span>(box.cls)]
+    conf = <span class="fn">float</span>(box.conf)
+    <span class="fn">print</span>(<span class="st">f"  ✓ {cls:20s} — confidence: {conf:.2%}"</span>)</pre>
+    </div>
+  </div>
+
+  <!-- CHECK YOUR UNDERSTANDING -->
+  <div class="section">
+    <div class="section-label">ทดสอบความเข้าใจ</div>
+    <div class="quiz-card">
+      <div id="quiz-container"></div>
+    </div>
+  </div>
+
+  <!-- KEY CONCEPTS -->
+  <div class="section">
+    <div class="section-label">คำศัพท์สำคัญสัปดาห์นี้</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <div class="card-title">Bounding Box</div>
+        <div class="card-body">กรอบสี่เหลี่ยมที่ล้อมรอบวัตถุ ระบุด้วยพิกัด (x, y, w, h) หรือ (x1, y1, x2, y2)</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <div class="card-title">Confidence Score</div>
+        <div class="card-body">ค่า 0–1 บอกว่าโมเดลมั่นใจแค่ไหนว่า detect ถูกต้อง ค่ายิ่งสูงยิ่งมั่นใจ</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏷️</div>
+        <div class="card-title">Class Label</div>
+        <div class="card-body">ชื่อของวัตถุที่ detect ได้ เช่น "person", "car", "cat" โมเดล COCO รู้จัก 80 class</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔁</div>
+        <div class="card-title">NMS (Non-Max Suppression)</div>
+        <div class="card-body">กระบวนการคัด bounding box ที่ซ้อนกันออก เหลือไว้แค่อันที่ดีที่สุดต่อวัตถุ 1 ชิ้น</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧠</div>
+        <div class="card-title">Pre-trained Model</div>
+        <div class="card-body">โมเดลที่ train บน dataset ใหญ่มาแล้ว (เช่น COCO) ใช้งานได้เลยโดยไม่ต้อง train เอง</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Inference</div>
+        <div class="card-body">การนำโมเดลที่ train แล้วไป predict ผลลัพธ์จากข้อมูลใหม่ แตกต่างจากขั้นตอน training</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSESSMENT -->
+  <div class="section">
+    <div class="section-label">การประเมินสัปดาห์นี้</div>
+    <div class="assess-grid">
+      <div class="assess-item">
+        <div class="assess-pct c2">40%</div>
+        <div class="assess-label">Lab Notebook<br>รัน OpenCV + YOLO ได้สำเร็จ</div>
+      </div>
+      <div class="assess-item">
+        <div class="assess-pct c3">30%</div>
+        <div class="assess-label">Case Study<br>นำเสนอ use case กลุ่ม</div>
+      </div>
+      <div class="assess-item">
+        <div class="assess-pct c1">30%</div>
+        <div class="assess-label">Short Quiz<br>แนวคิดพื้นฐาน</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEOS -->
+  <div class="section">
+    <div class="section-label">คลิปตัวอย่างของจริง</div>
+    <h2 style="margin-bottom:8px">ดูก่อนเรียน — เห็นภาพก่อนลงมือ</h2>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:20px">คลิก ▶ เพื่อเล่นได้เลย · ดูแล้วถามตัวเองว่า "โมเดลรู้ได้ยังไงว่าตรงไหนคืออะไร?"</p>
+    <div class="video-grid">
+      <div class="video-card">
+        <div class="video-wrap" onclick="loadVideo(this,'Sl12AP_Yy6o')">
+          <img class="video-thumb" src="https://img.youtube.com/vi/Sl12AP_Yy6o/hqdefault.jpg" alt="YOLOv8 real-time">
+          <div class="play-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <iframe class="video-iframe" allowfullscreen allow="autoplay"></iframe>
+        </div>
+        <div class="video-meta">
+          <span class="video-tag tag-demo">Demo · YOLOv8</span>
+          <div class="video-title">Real-Time Object Detection — YOLOv8</div>
+          <div class="video-desc">ดู YOLOv8 วิ่ง detect วัตถุแบบ real-time บน webcam เห็น bounding box + label + FPS ชัดเจน</div>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-wrap" onclick="loadVideo(this,'fKXztwtXaGo')">
+          <img class="video-thumb" src="https://img.youtube.com/vi/fKXztwtXaGo/hqdefault.jpg" alt="Tesla Autopilot">
+          <div class="play-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <iframe class="video-iframe" allowfullscreen allow="autoplay"></iframe>
+        </div>
+        <div class="video-meta">
+          <span class="video-tag tag-industry">Industry · Autonomous</span>
+          <div class="video-title">Tesla Autopilot — มองเห็นอะไรบนถนน?</div>
+          <div class="video-desc">ภาพ neural network Tesla วิเคราะห์ถนน detect รถ คน ป้าย แบบ multi-class real-time ใน production จริง</div>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-wrap" onclick="loadVideo(this,'chpxRJWntDI')">
+          <img class="video-thumb" src="https://img.youtube.com/vi/chpxRJWntDI/hqdefault.jpg" alt="CCTV Vehicle Counting">
+          <div class="play-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <iframe class="video-iframe" allowfullscreen allow="autoplay"></iframe>
+        </div>
+        <div class="video-meta">
+          <span class="video-tag tag-app">Application · CCTV</span>
+          <div class="video-title">Live CCTV Vehicle Counting — YOLO11</div>
+          <div class="video-desc">ใช้ YOLO11 นับรถในกล้องวงจรปิด real-time เห็น use case งาน traffic monitoring ของจริง</div>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-wrap" onclick="loadVideo(this,'QV85eYOb7gk')">
+          <img class="video-thumb" src="https://img.youtube.com/vi/QV85eYOb7gk/hqdefault.jpg" alt="YOLOv8 Object Counting">
+          <div class="play-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <iframe class="video-iframe" allowfullscreen allow="autoplay"></iframe>
+        </div>
+        <div class="video-meta">
+          <span class="video-tag tag-demo">Demo · Counting</span>
+          <div class="video-title">YOLOv8 Object Counting บน Webcam</div>
+          <div class="video-desc">นับวัตถุ real-time ผ่าน OpenCV + YOLOv8 — สิ่งที่เราจะทำได้ใน Lab วันนี้!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>31906-2016 Object Detection · Week 1 · วิทยาลัยเทคนิคเลย · 2569</footer>
+</div>
+
+<script>
+// ── YOLO TIMELINE ──
+const yolos = [
+  { label:'v1', year:'2016', info:'<strong>YOLOv1</strong> — ปฏิวัติวงการ! แนวคิด "look once" predict bbox+class ในเดียว แต่ยังแม่นน้อย' },
+  { label:'v3', year:'2018', info:'<strong>YOLOv3</strong> — Multi-scale detection, detect วัตถุเล็กได้ดีขึ้น ใช้ Darknet-53' },
+  { label:'v5', year:'2020', info:'<strong>YOLOv5</strong> — Ultralytics ทำให้ใช้งานง่ายมาก PyTorch-based, มี export หลายรูปแบบ' },
+  { label:'v8', year:'2023', info:'<strong>YOLOv8</strong> ⭐ — Anchor-free! API ดีมาก รองรับ detect+segment+pose ในเดียว <em>→ เราใช้ตัวนี้</em>' },
+  { label:'v11', year:'2024', info:'<strong>YOLO11</strong> — C3k2 blocks + attention module, parameter น้อยกว่า v8 แต่แม่นกว่า' },
+  { label:'v12', year:'Feb 2025', info:'<strong>YOLOv12</strong> — Area Attention (A²) + R-ELAN, attention-centric YOLO ตัวแรก' },
+  { label:'v26', year:'Sep 2025', info:'<strong>YOLO26</strong> — ล่าสุด! เน้น edge deployment, เร็วกว่า v8 ถึง 43% บน TensorRT' },
+];
+const row = document.getElementById('tl-row');
+const detail = document.getElementById('tl-detail');
+let activeYolo = null;
+
+yolos.forEach((y, i) => {
+  const node = document.createElement('div');
+  node.className = 'tl-node' + (y.label === 'v8' ? ' current' : '');
+  node.innerHTML = `<div class="tl-dot">${y.label}</div><div class="tl-label">${y.label}</div><div class="tl-year">${y.year}</div>`;
+  node.onclick = () => {
+    document.querySelectorAll('.tl-node').forEach(n => n.classList.remove('hi'));
+    if (activeYolo === i) {
+      activeYolo = null;
+      detail.classList.remove('show');
+      detail.innerHTML = '';
+      return;
+    }
+    activeYolo = i;
+    node.classList.add('hi');
+    detail.innerHTML = y.info;
+    detail.classList.add('show');
+  };
+  row.appendChild(node);
+  if (i < yolos.length - 1) {
+    const conn = document.createElement('div');
+    conn.className = 'tl-connector';
+    row.appendChild(conn);
+  }
+});
+
+// ── QUIZ ──
+const questions = [
+  {
+    q: 'Object Detection แตกต่างจาก Image Classification อย่างไร?',
+    opts: [
+      'Classification ทำงานเร็วกว่าเสมอ',
+      'Detection ระบุตำแหน่ง (Bounding Box) และ class พร้อมกัน ส่วน Classification แค่บอก class ของภาพทั้งใบ',
+      'Detection ใช้ได้แค่กับภาพ ส่วน Classification ใช้กับวิดีโอด้วย',
+      'ไม่แตกต่างกัน เพียงแต่ชื่อต่างกัน'
+    ],
+    correct: 1,
+    explain: '✓ ถูกต้อง! Detection = หา "ว่ามีอะไร" + "อยู่ที่ไหน" ในภาพเดียวกัน ส่วน Classification แค่ตอบว่าภาพนี้คืออะไร'
+  },
+  {
+    q: 'Confidence Score 0.35 หมายความว่าอย่างไร?',
+    opts: [
+      'โมเดลมั่นใจ 35% ว่า detect ถูกต้อง',
+      'ภาพมีความชัด 35%',
+      'วัตถุมีขนาด 35% ของภาพ',
+      'ประมวลผลไปแล้ว 35%'
+    ],
+    correct: 0,
+    explain: '✓ ถูกต้อง! Confidence Score คือความมั่นใจของโมเดล ค่า 0.35 = มั่นใจ 35% ค่ายิ่งสูงยิ่งแม่น — ปกติตั้ง threshold ที่ 0.35–0.5'
+  },
+  {
+    q: 'YOLOv8 ใช้เป็น baseline ในรายวิชานี้เพราะอะไร?',
+    opts: [
+      'เป็นเวอร์ชันที่เก่าแก่ที่สุด เสถียรที่สุด',
+      'เป็น Anchor-free, API ใช้งานง่าย, รองรับทั้ง detect/segment/pose และเป็น industry standard ปัจจุบัน',
+      'เป็นโมเดลที่เล็กที่สุด ใช้ RAM น้อยที่สุด',
+      'เพราะเป็นโมเดลเดียวที่ทำงานบน Colab ได้'
+    ],
+    correct: 1,
+    explain: '✓ ถูกต้อง! YOLOv8 ดีเพราะ anchor-free (เข้าใจง่าย), API ดี, versatile และเป็นมาตรฐานที่ใช้งานจริง ก่อนจะขยับไป v11/v12'
+  }
+];
+
+let qi = 0, answered = false;
+
+function renderQuiz() {
+  const q = questions[qi];
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = `
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-options">
+      ${q.opts.map((o,i) => `
+        <div class="quiz-opt" onclick="answer(${i})" id="opt-${i}">
+          <span class="opt-letter">${['A','B','C','D'][i]}</span>
+          ${o}
+        </div>`).join('')}
+    </div>
+    <div class="quiz-result" id="quiz-result"></div>
+    <div class="quiz-nav">
+      <span class="quiz-prog">ข้อ ${qi+1} / ${questions.length}</span>
+      <button class="btn-next" id="btn-next" onclick="nextQ()">ข้อถัดไป →</button>
+    </div>
+  `;
+  answered = false;
+}
+
+function answer(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qi];
+  document.querySelectorAll('.quiz-opt').forEach((el,j) => {
+    if (j === q.correct) el.classList.add('correct');
+    else if (j === i && i !== q.correct) el.classList.add('wrong');
+  });
+  const res = document.getElementById('quiz-result');
+  res.className = 'quiz-result show ' + (i === q.correct ? 'ok' : 'no');
+  res.textContent = i === q.correct ? q.explain : '✗ ลองคิดใหม่ — ' + q.explain;
+  if (qi < questions.length - 1) document.getElementById('btn-next').classList.add('show');
+  else document.getElementById('btn-next').textContent = 'เริ่มใหม่';
+    document.getElementById('btn-next').classList.add('show');
+}
+
+function nextQ() {
+  qi = (qi + 1) % questions.length;
+  renderQuiz();
+}
+
+renderQuiz();
+
+// ── COPY CODE ──
+function loadVideo(wrap, id) {
+  const iframe = wrap.querySelector('.video-iframe');
+  const thumb = wrap.querySelector('.video-thumb');
+  const btn = wrap.querySelector('.play-btn');
+  iframe.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0';
+  iframe.style.display = 'block';
+  thumb.style.display = 'none';
+  btn.style.display = 'none';
+}
+
+function copyCode(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('.code-copy');
+    btns.forEach(b => {
+      if (b.getAttribute('onclick').includes(id)) {
+        b.textContent = 'copied!';
+        b.style.color = 'var(--accent)';
+        b.style.borderColor = 'var(--accent)';
+        setTimeout(() => { b.textContent = 'copy'; b.style.color=''; b.style.borderColor=''; }, 1500);
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>

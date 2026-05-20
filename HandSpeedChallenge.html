@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🖐️ Hand Speed Challenge</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700;900&family=Sarabun:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#080a10;--card:#0f1118;--border:#191d2a;
+  --accent:#00e5c0;--purple:#7c5cfc;--amber:#f5a623;
+  --red:#ff3d5a;--green:#1ed760;--text:#d4dae8;--muted:#404660;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink);color:var(--text);font-family:'Sarabun',sans-serif;display:flex;flex-direction:column}
+
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(25,29,42,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(25,29,42,.6) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;
+}
+
+.root{position:relative;z-index:1;display:grid;grid-template-columns:1fr 340px;grid-template-rows:56px 1fr;gap:12px;padding:12px;height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{
+  grid-column:1/-1;display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0 16px;
+}
+.topbar-title{font-size:17px;font-weight:800;color:#fff;flex:1}
+.topbar-title span{color:var(--accent)}
+.badge{
+  display:flex;align-items:center;gap:6px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+  background:var(--ink);border:1px solid var(--border);border-radius:6px;padding:4px 10px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--accent);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── CAM ── */
+.cam-wrap{
+  position:relative;border-radius:14px;overflow:hidden;
+  border:3px solid var(--border);background:#000;
+  transition:border-color .2s, box-shadow .2s;
+}
+.cam-wrap.ready   {border-color:var(--amber);box-shadow:0 0 30px rgba(245,166,35,.2)}
+.cam-wrap.playing {border-color:var(--border)}
+.cam-wrap.scored  {border-color:var(--green);box-shadow:0 0 50px rgba(30,215,96,.35)}
+.cam-wrap.gameover{border-color:var(--red);box-shadow:0 0 40px rgba(255,61,90,.3)}
+
+#vid{display:block;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#cvs{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+
+/* SCORE BURST — shown on cam when +1 */
+.score-burst{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  font-family:'IBM Plex Mono',monospace;font-size:80px;font-weight:900;
+  color:var(--green);text-shadow:0 0 30px rgba(30,215,96,.6);
+  pointer-events:none;opacity:0;transition:none;
+  z-index:10;
+}
+.score-burst.pop{animation:burst .5s ease-out forwards}
+@keyframes burst{
+  0%  {transform:translate(-50%,-50%) scale(.3);opacity:1}
+  50% {transform:translate(-50%,-60%) scale(1.3);opacity:1}
+  100%{transform:translate(-50%,-80%) scale(.8);opacity:0}
+}
+
+/* COUNTDOWN BIG */
+.countdown-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,10,16,.85);z-index:20;
+  flex-direction:column;gap:8px;
+  transition:opacity .3s;
+}
+.countdown-overlay.hide{opacity:0;pointer-events:none}
+.cd-num{
+  font-family:'IBM Plex Mono',monospace;font-size:120px;font-weight:900;
+  color:var(--accent);line-height:1;
+  animation:cdPop .4s ease;
+}
+@keyframes cdPop{from{transform:scale(1.6);opacity:.3}to{transform:scale(1);opacity:1}}
+.cd-label{font-size:22px;color:var(--muted)}
+
+/* GAMEOVER OVERLAY */
+.gameover-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;background:rgba(8,10,16,.88);z-index:20;
+  opacity:0;pointer-events:none;transition:opacity .4s;
+}
+.gameover-overlay.show{opacity:1;pointer-events:all}
+.go-title{font-size:32px;font-weight:900;color:#fff}
+.go-score{font-family:'IBM Plex Mono',monospace;font-size:80px;font-weight:900;color:var(--green);line-height:1}
+.go-label{font-size:16px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.go-best{
+  font-size:18px;font-weight:700;padding:8px 20px;border-radius:10px;
+  background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);color:var(--amber);
+}
+.btn-play-again{
+  margin-top:8px;padding:12px 32px;border-radius:12px;border:none;
+  background:var(--purple);color:#fff;font-family:'Sarabun',sans-serif;
+  font-size:18px;font-weight:700;cursor:pointer;transition:opacity .15s;
+}
+.btn-play-again:hover{opacity:.85}
+
+/* LOADING */
+.loading-ov{
+  position:absolute;inset:0;z-index:30;background:rgba(8,10,16,.9);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  transition:opacity .5s;
+}
+.loading-ov.hide{opacity:0;pointer-events:none}
+.spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-text{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted)}
+
+/* HAND INDICATOR strips on sides of cam */
+.hand-side{
+  position:absolute;top:0;bottom:0;width:48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  z-index:5;pointer-events:none;
+}
+.hand-side.left{left:0;background:linear-gradient(90deg,rgba(124,92,252,.08),transparent)}
+.hand-side.right{right:0;background:linear-gradient(270deg,rgba(0,229,192,.08),transparent)}
+.hand-label{font-size:10px;font-family:'IBM Plex Mono',monospace;writing-mode:vertical-rl;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hand-glow{
+  width:28px;height:28px;border-radius:50%;border:2px solid var(--border);
+  transition:all .15s;
+}
+.hand-side.left  .hand-glow{border-color:var(--purple)}
+.hand-side.right .hand-glow{border-color:var(--accent)}
+.hand-glow.active.left {background:var(--purple);box-shadow:0 0 16px rgba(124,92,252,.7)}
+.hand-glow.active.right{background:var(--accent); box-shadow:0 0 16px rgba(0,229,192,.7)}
+
+/* ── RIGHT PANEL ── */
+.panel{display:flex;flex-direction:column;gap:12px}
+
+/* BIG SCORE */
+.score-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:20px;text-align:center;position:relative;overflow:hidden;
+}
+.score-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--purple),var(--accent));
+}
+.sc-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.sc-num{
+  font-family:'IBM Plex Mono',monospace;font-size:88px;font-weight:900;line-height:1;
+  color:var(--green);transition:transform .1s;
+}
+.sc-num.bump{transform:scale(1.2)}
+.sc-sub{font-size:13px;color:var(--muted);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+
+/* TIMER ARC */
+.timer-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.timer-svg{width:120px;height:120px;transform:rotate(-90deg)}
+.tr-bg{fill:none;stroke:var(--border);stroke-width:10}
+.tr-fill{fill:none;stroke-width:10;stroke-linecap:round;stroke-dasharray:326;stroke-dashoffset:0;transition:stroke .3s}
+.timer-inner{
+  position:relative;margin-top:-128px;margin-bottom:8px;
+  width:120px;height:120px;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:36px;font-weight:900;color:#fff;
+}
+.time-sub{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* SETTINGS */
+.setting-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.setting-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.setting-row:last-child{margin:0}
+.s-label{font-size:13px;color:var(--muted);flex:1}
+.s-select{
+  background:var(--ink);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;
+}
+
+/* LEADERBOARD */
+.lb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;flex:1;min-height:0;overflow:hidden}
+.lb-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.lb-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:200px}
+.lb-item{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-radius:8px;background:var(--ink);border:1px solid var(--border);
+  font-size:14px;transition:border-color .2s;
+}
+.lb-item.gold  {border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.06)}
+.lb-item.silver{border-color:rgba(148,163,184,.3)}
+.lb-rank{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);min-width:24px}
+.lb-name{flex:1;font-weight:600;color:#fff}
+.lb-score{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:var(--green)}
+.lb-time{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* START BTN */
+.btn-start{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--purple),#4f35c0);
+  color:#fff;font-family:'Sarabun',sans-serif;font-size:18px;font-weight:800;
+  cursor:pointer;transition:transform .15s,opacity .15s;
+  letter-spacing:.02em;
+}
+.btn-start:hover:not(:disabled){transform:translateY(-2px);opacity:.9}
+.btn-start:disabled{opacity:.4;cursor:default}
+
+/* FINGER MINI */
+.finger-mini{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;
+}
+.fm-row{display:flex;gap:8px;justify-content:center;margin-bottom:6px}
+.fm-bar{
+  width:22px;height:44px;border-radius:11px;
+  border:2px solid var(--border);background:var(--ink);
+  transition:all .1s;
+}
+.fm-bar.up.L{background:var(--purple);border-color:var(--purple);box-shadow:0 0 8px rgba(124,92,252,.5)}
+.fm-bar.up.R{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(0,229,192,.5)}
+.fm-hands{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* CONFETTI */
+.confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:9999}
+.cp{position:absolute;width:9px;height:9px;border-radius:2px;animation:cf 1.2s ease-out forwards}
+@keyframes cf{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* NAME INPUT */
+.name-input{
+  background:var(--ink);border:1px solid var(--border);color:#fff;
+  border-radius:8px;padding:8px 12px;font-family:'Sarabun',sans-serif;font-size:15px;
+  width:100%;margin-top:10px;outline:none;text-align:center;
+}
+.name-input:focus{border-color:var(--purple)}
+</style>
+</head>
+<body>
+<div class="root">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">🖐️ Hand Speed <span>Challenge</span></div>
+    <div class="badge"><div class="dot" id="liveDot"></div><span id="liveText">กำลังโหลด AI...</span></div>
+    <div style="font-size:13px;color:var(--muted)">ยกมือครบ 5 นิ้ว → +1 คะแนน · สลับมือให้เร็วที่สุด!</div>
+  </div>
+
+  <!-- CAM -->
+  <div class="cam-wrap" id="camWrap">
+    <video id="vid" playsinline autoplay muted></video>
+    <canvas id="cvs"></canvas>
+
+    <!-- hand side indicators -->
+    <div class="hand-side left"><div class="hand-label">ซ้าย</div><div class="hand-glow left" id="glowL"></div></div>
+    <div class="hand-side right"><div class="hand-glow right" id="glowR"></div><div class="hand-label">ขวา</div></div>
+
+    <!-- score burst -->
+    <div class="score-burst" id="burst">+1</div>
+
+    <!-- countdown -->
+    <div class="countdown-overlay" id="cdOverlay">
+      <div class="cd-num" id="cdNum">3</div>
+      <div class="cd-label">เตรียมพร้อม...</div>
+    </div>
+
+    <!-- gameover -->
+    <div class="gameover-overlay" id="goOverlay">
+      <div class="go-title">⏱ หมดเวลา!</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-label">ครั้ง</div>
+      <div class="go-best" id="goBest">🏆 Best: 0</div>
+      <input class="name-input" id="nameInput" placeholder="ใส่ชื่อเพื่อบันทึกสถิติ..." maxlength="20">
+      <button class="btn-play-again" id="btnAgain" onclick="saveAndRestart()">💾 บันทึก &amp; เล่นใหม่</button>
+    </div>
+
+    <!-- loading -->
+    <div class="loading-ov" id="loadOv">
+      <div class="spinner"></div>
+      <div class="ld-text">กำลังโหลด MediaPipe Hands...</div>
+      <div class="ld-text" style="font-size:11px;opacity:.5;margin-top:4px">โหลดครั้งแรกอาจใช้สักครู่</div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+
+    <!-- SCORE -->
+    <div class="score-card">
+      <div class="sc-label">Score</div>
+      <div class="sc-num" id="scNum">—</div>
+      <div class="sc-sub" id="scSub">ยังไม่ได้เริ่ม</div>
+    </div>
+
+    <!-- TIMER -->
+    <div class="timer-card">
+      <svg class="timer-svg" viewBox="0 0 120 120">
+        <circle class="tr-bg" cx="60" cy="60" r="52"/>
+        <circle class="tr-fill" id="trFill" cx="60" cy="60" r="52" stroke="var(--accent)"/>
+      </svg>
+      <div class="timer-inner"><span id="timerDisp">—</span></div>
+      <div class="time-sub">วินาทีที่เหลือ</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="setting-card">
+      <div class="setting-row">
+        <div class="s-label">⏱ เวลา</div>
+        <select class="s-select" id="timeSel">
+          <option value="15">15 วิ (ลอง)</option>
+          <option value="30" selected>30 วิ (ปกติ)</option>
+          <option value="60">60 วิ (โปร)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="s-label">👤 ชื่อ</div>
+        <input class="name-input" id="playerName" placeholder="ชื่อผู้เล่น..." style="margin:0;width:auto;flex:1;padding:6px 10px;font-size:13px">
+      </div>
+    </div>
+
+    <!-- FINGER DISPLAY -->
+    <div class="finger-mini">
+      <div class="fm-row" id="fmRow">
+        <div class="fm-bar" id="fm0"></div>
+        <div class="fm-bar" id="fm1"></div>
+        <div class="fm-bar" id="fm2"></div>
+        <div class="fm-bar" id="fm3"></div>
+        <div class="fm-bar" id="fm4"></div>
+      </div>
+      <div class="fm-hands"><span id="fmLeft">ซ้าย: 0</span><span id="fmRight">ขวา: 0</span></div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="lb-card">
+      <div class="lb-title">🏆 Leaderboard</div>
+      <div class="lb-list" id="lbList"><div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">ยังไม่มีสถิติ</div></div>
+    </div>
+
+    <!-- BTN -->
+    <button class="btn-start" id="btnStart" disabled onclick="startGame()">⏳ กำลังโหลด AI...</button>
+  </div>
+</div>
+
+<div class="confetti-layer" id="cfLayer"></div>
+
+<script>
+// ── DOM ──
+const vid=document.getElementById('vid'),cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+const camWrap=document.getElementById('camWrap');
+const loadOv=document.getElementById('loadOv');
+const liveDot=document.getElementById('liveDot'),liveText=document.getElementById('liveText');
+const cdOverlay=document.getElementById('cdOverlay'),cdNum=document.getElementById('cdNum');
+const goOverlay=document.getElementById('goOverlay'),goScore=document.getElementById('goScore'),goBest=document.getElementById('goBest');
+const burst=document.getElementById('burst');
+const scNum=document.getElementById('scNum'),scSub=document.getElementById('scSub');
+const timerDisp=document.getElementById('timerDisp'),trFill=document.getElementById('trFill');
+const btnStart=document.getElementById('btnStart');
+const glowL=document.getElementById('glowL'),glowR=document.getElementById('glowR');
+const fmLeft=document.getElementById('fmLeft'),fmRight=document.getElementById('fmRight');
+
+// ── CONSTANTS ──
+const CIRC=2*Math.PI*52; // 326.7
+const COOLDOWN=400; // ms before same hand can score again
+
+// ── STATE ──
+let phase='idle'; // idle|countdown|playing|over
+let score=0,totalTime=30,timeLeft=0,timerRAF=null,timerStart=0;
+let lastScoreTime=0,lastScoreHand='';
+let leaderboard=JSON.parse(localStorage.getItem('hsc_lb')||'[]');
+
+// ── FINGER COUNT ──
+function getFingers(lms,side){
+  // side: 'Left' or 'Right' (MediaPipe label from camera=mirror)
+  const s=[false,false,false,false,false];
+  const isRight=side==='Right';
+  if(isRight?lms[4].x<lms[3].x:lms[4].x>lms[3].x) s[0]=true;
+  [[8,6],[12,10],[16,14],[20,18]].forEach(([t,p],i)=>{if(lms[t].y<lms[p].y-0.025)s[i+1]=true;});
+  return{count:s.filter(Boolean).length,states:s};
+}
+
+// ── GAME FLOW ──
+function startGame(){
+  if(phase!=='idle')return;
+  totalTime=parseInt(document.getElementById('timeSel').value);
+  score=0;
+  scNum.textContent='0';
+  scSub.textContent='เริ่มเลย!';
+  goOverlay.classList.remove('show');
+  btnStart.disabled=true;
+  phase='countdown';
+  camWrap.className='cam-wrap ready';
+
+  // 3-2-1 countdown
+  let c=3;
+  cdOverlay.classList.remove('hide');
+  cdNum.textContent=c;
+  const tick=setInterval(()=>{
+    c--;
+    if(c<=0){
+      clearInterval(tick);
+      cdOverlay.classList.add('hide');
+      beginPlay();
+    } else {
+      cdNum.textContent=c;
+      cdNum.style.animation='none';
+      void cdNum.offsetWidth;
+      cdNum.style.animation='cdPop .4s ease';
+    }
+  },700);
+}
+
+function beginPlay(){
+  phase='playing';
+  timeLeft=totalTime;
+  timerStart=performance.now();
+  lastScoreTime=0;lastScoreHand='';
+  camWrap.className='cam-wrap playing';
+  timerDisp.textContent=totalTime;
+  updateTimerArc(1);
+  tickGame();
+}
+
+function tickGame(){
+  const elapsed=(performance.now()-timerStart)/1000;
+  timeLeft=Math.max(0,totalTime-elapsed);
+  const pct=timeLeft/totalTime;
+
+  timerDisp.textContent=Math.ceil(timeLeft);
+  updateTimerArc(pct);
+
+  // color shift
+  if(pct<.25) trFill.style.stroke='var(--red)';
+  else if(pct<.5) trFill.style.stroke='var(--amber)';
+  else trFill.style.stroke='var(--accent)';
+
+  if(timeLeft<=0){endGame();return;}
+  timerRAF=requestAnimationFrame(tickGame);
+}
+
+function updateTimerArc(pct){trFill.style.strokeDashoffset=CIRC*(1-pct);}
+
+function tryScore(side,now){
+  if(phase!=='playing')return;
+  if(now-lastScoreTime<COOLDOWN && lastScoreHand===side)return; // same hand cooldown
+  lastScoreTime=now;
+  lastScoreHand=side;
+  score++;
+  scNum.textContent=score;
+  scSub.textContent=`ครั้งที่ ${score} · ${side==='Left'?'มือซ้าย 🫲':'มือขวา 🫱'}`;
+
+  // bump animation
+  scNum.classList.remove('bump');
+  void scNum.offsetWidth;
+  scNum.classList.add('bump');
+  setTimeout(()=>scNum.classList.remove('bump'),150);
+
+  // +1 burst
+  burst.textContent='+1';
+  burst.style.color=side==='Left'?'var(--purple)':'var(--accent)';
+  burst.className='score-burst';
+  void burst.offsetWidth;
+  burst.className='score-burst pop';
+
+  // cam flash
+  camWrap.className='cam-wrap scored';
+  setTimeout(()=>{if(phase==='playing')camWrap.className='cam-wrap playing';},200);
+
+  // confetti burst (small)
+  spawnConfetti(20,side==='Left'?['#7c5cfc','#a78bfa','#fff']:['#00e5c0','#22c55e','#fff']);
+}
+
+function endGame(){
+  cancelAnimationFrame(timerRAF);
+  phase='over';
+  camWrap.className='cam-wrap gameover';
+  timerDisp.textContent='0';
+  updateTimerArc(0);
+
+  goScore.textContent=score;
+  const best=leaderboard.length>0?leaderboard[0].score:0;
+  goBest.textContent=score>best?`🏆 NEW BEST: ${score}!`:`🏆 Best: ${best}`;
+  if(score>best) spawnConfetti(80);
+  goOverlay.classList.add('show');
+
+  const n=document.getElementById('playerName').value;
+  if(n) document.getElementById('nameInput').value=n;
+}
+
+function saveAndRestart(){
+  const name=document.getElementById('nameInput').value.trim()||
+             document.getElementById('playerName').value.trim()||'Anonymous';
+  const dur=parseInt(document.getElementById('timeSel').value);
+  leaderboard.push({name,score,time:dur,date:new Date().toLocaleDateString('th')});
+  leaderboard.sort((a,b)=>b.score-a.score);
+  leaderboard=leaderboard.slice(0,10);
+  localStorage.setItem('hsc_lb',JSON.stringify(leaderboard));
+  renderLB();
+
+  goOverlay.classList.remove('show');
+  phase='idle';
+  btnStart.disabled=false;
+  btnStart.textContent='▶  เริ่มเกม!';
+  scNum.textContent='—';
+  scSub.textContent='พร้อมแล้ว!';
+  timerDisp.textContent=dur;
+  updateTimerArc(1);
+  trFill.style.stroke='var(--accent)';
+  camWrap.className='cam-wrap';
+}
+
+// ── LEADERBOARD ──
+function renderLB(){
+  const el=document.getElementById('lbList');
+  if(!leaderboard.length){el.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">ยังไม่มีสถิติ</div>';return;}
+  el.innerHTML=leaderboard.map((e,i)=>`
+    <div class="lb-item ${i===0?'gold':i===1?'silver':''}">
+      <span class="lb-rank">${['🥇','🥈','🥉'][i]||'#'+(i+1)}</span>
+      <span class="lb-name">${e.name}</span>
+      <span class="lb-score">${e.score}</span>
+      <span class="lb-time">${e.time}s · ${e.date}</span>
+    </div>`).join('');
+}
+
+// ── CONFETTI ──
+function spawnConfetti(n=60,colors=['#00e5c0','#7c5cfc','#f5a623','#22c55e','#fff','#ff3d5a']){
+  const w=document.getElementById('cfLayer');
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');
+    el.className='cp';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-12px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*.5}s;animation-duration:${.8+Math.random()*.8}s;`;
+    w.appendChild(el);
+    setTimeout(()=>el.remove(),1800);
+  }
+}
+
+// ── MEDIAPIPE ──
+const mpHands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+mpHands.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:.72,minTrackingConfidence:.65});
+
+mpHands.onResults(results=>{
+  cvs.width=vid.videoWidth; cvs.height=vid.videoHeight;
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+
+  const now=performance.now();
+  let leftCount=0,rightCount=0;
+  let leftStates=Array(5).fill(false),rightStates=Array(5).fill(false);
+
+  if(results.multiHandLandmarks?.length){
+    results.multiHandLandmarks.forEach((lms,idx)=>{
+      // MediaPipe handedness is mirrored: 'Right' in label = user's Left hand on screen
+      const mpSide=results.multiHandedness[idx].label; // 'Left' or 'Right'
+      // Flip for display (mirrored video): mpSide 'Right' = actual left hand
+      const actualSide=mpSide==='Right'?'Left':'Right';
+      const {count,states}=getFingers(lms,mpSide);
+
+      if(actualSide==='Left'){leftCount=count;leftStates=states;}
+      else{rightCount=count;rightStates=states;}
+
+      // Draw skeleton
+      drawConnectors(ctx,lms,HAND_CONNECTIONS,{
+        color:actualSide==='Left'?'rgba(124,92,252,.7)':'rgba(0,229,192,.7)',lineWidth:3});
+      lms.forEach((lm,i)=>{
+        const isTip=[4,8,12,16,20].includes(i);
+        ctx.beginPath();
+        ctx.arc(lm.x*cvs.width,lm.y*cvs.height,isTip?8:4,0,Math.PI*2);
+        ctx.fillStyle=isTip?(actualSide==='Left'?'#a78bfa':'#00e5c0'):'rgba(255,255,255,.5)';
+        ctx.fill();
+      });
+
+      // Score when all 5 fingers up
+      if(count===5) tryScore(actualSide,now);
+    });
+  }
+
+  // Glow indicators
+  glowL.className='hand-glow left'+(leftCount===5?' active':'');
+  glowR.className='hand-glow right'+(rightCount===5?' active':'');
+
+  // Finger bars — show whichever hand has more fingers
+  const dominant=leftCount>=rightCount?{states:leftStates,side:'L'}:{states:rightStates,side:'R'};
+  for(let i=0;i<5;i++){
+    const b=document.getElementById('fm'+i);
+    b.className='fm-bar'+(dominant.states[i]?' up '+dominant.side:'');
+  }
+  fmLeft.textContent=`ซ้าย: ${leftCount}`;
+  fmRight.textContent=`ขวา: ${rightCount}`;
+});
+
+const cam=new Camera(vid,{onFrame:async()=>{await mpHands.send({image:vid});},width:640,height:480});
+cam.start().then(()=>{
+  loadOv.classList.add('hide');
+  liveDot.classList.add('live');
+  liveText.textContent='LIVE · MediaPipe Hands';
+  btnStart.disabled=false;
+  btnStart.textContent='▶  เริ่มเกม!';
+  scSub.textContent='พร้อมแล้ว! กด "เริ่มเกม"';
+  renderLB();
+}).catch(()=>{
+  document.querySelector('.ld-text').textContent='❌ ไม่สามารถเข้าถึงกล้องได้';
+});
+</script>
+</body>
+</html>
