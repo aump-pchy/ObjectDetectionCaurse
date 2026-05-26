@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Processing with OpenCV</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky:#0ea5e9;--purple:#7c3aed;--emerald:#10b981;--amber:#f59e0b;
+  --rose:#f43f5e;--indigo:#4f46e5;--cyan:#06b6d4;--orange:#f97316;
+  --bg:#f0f4ff;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;
+  --mono:'IBM Plex Mono',monospace;--sans:'Sarabun',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.7;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:0;padding:0 20px;overflow-x:auto;
+}
+.nav-logo{font-size:15px;font-weight:800;color:var(--purple);padding:14px 16px 14px 0;white-space:nowrap;flex-shrink:0}
+.nav-link{
+  font-size:13px;font-weight:600;color:var(--muted);padding:14px 12px;
+  white-space:nowrap;text-decoration:none;border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+}
+.nav-link:hover{color:var(--purple);border-color:var(--purple)}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg,#7c3aed 0%,#0ea5e9 60%,#10b981 100%);
+  color:#fff;text-align:center;padding:72px 20px 80px;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-tag{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:4px 16px;border-radius:20px;font-size:13px;margin-bottom:16px;font-family:var(--mono)}
+.hero h1{font-size:clamp(30px,5vw,52px);font-weight:800;line-height:1.2;margin-bottom:12px}
+.hero p{font-size:18px;opacity:.85;max-width:560px;margin:0 auto 28px}
+.hero-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600}
+
+/* ── WRAP ── */
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+
+/* ── SECTION ── */
+section{padding:60px 0}
+section:nth-child(even){background:#fff}
+.sec-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:10px;font-weight:600}
+h2{font-size:clamp(22px,4vw,32px);font-weight:800;margin-bottom:8px;line-height:1.2}
+.sec-sub{font-size:16px;color:var(--muted);margin-bottom:32px}
+
+/* ── CARDS ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.05);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.card-icon{font-size:32px;margin-bottom:10px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.card-body{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ── LEARN LIST ── */
+.learn-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.learn-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;font-size:14px;font-weight:600;
+  box-shadow:0 1px 6px rgba(0,0,0,.04);
+}
+.learn-num{
+  width:32px;height:32px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+
+/* ── CODE BLOCK ── */
+.code-wrap{background:#1e1b4b;border-radius:14px;overflow:hidden;margin:16px 0}
+.code-header{background:#2d2a5e;padding:8px 16px;display:flex;align-items:center;justify-content:space-between}
+.code-title{font-family:var(--mono);font-size:12px;color:#a5b4fc}
+.code-copy{font-family:var(--mono);font-size:11px;color:#a5b4fc;background:rgba(165,180,252,.15);border:1px solid rgba(165,180,252,.3);border-radius:5px;padding:3px 10px;cursor:pointer;transition:all .15s}
+.code-copy:hover{background:rgba(165,180,252,.3);color:#fff}
+pre{padding:20px;font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto;color:#e2e8f0}
+.kw{color:#c084fc}.fn{color:#67e8f9}.st{color:#86efac}.cm{color:#475569;font-style:italic}.nu{color:#fbbf24}.at{color:#fb923c}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;background:var(--border);border-radius:10px;padding:3px;margin-bottom:16px}
+.tab{flex:1;text-align:center;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;color:var(--muted)}
+.tab.active{background:#fff;color:var(--purple);box-shadow:0 1px 6px rgba(0,0,0,.1)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── RGB DEMO ── */
+.rgb-demo{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:20px 0}
+.ch-box{
+  width:120px;border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;
+  transition:transform .2s;
+}
+.ch-box:hover{transform:scale(1.06)}
+.ch-top{height:80px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.ch-label{padding:8px;text-align:center;font-weight:700;font-size:14px;background:#fff}
+.ch-values{padding:4px 8px 10px;background:#fff;text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* ── PIXEL GRID DEMO ── */
+.pixel-demo{display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:center;margin:20px 0}
+.pixel-grid canvas{border:2px solid var(--border);border-radius:8px;image-rendering:pixelated}
+.pixel-info{max-width:260px}
+.pixel-val{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:8px;line-height:1.9}
+
+/* ── GRAY SPECTRUM ── */
+.gray-bar{
+  height:40px;border-radius:10px;
+  background:linear-gradient(90deg,#000,#fff);
+  position:relative;margin:16px 0;
+  border:1px solid var(--border);
+}
+.gray-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── RESOLUTION VISUAL ── */
+.res-demo{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:center;margin:20px 0}
+.res-box{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  cursor:pointer;
+}
+.res-box canvas{border:1px solid var(--border);border-radius:6px;transition:transform .2s}
+.res-box:hover canvas{transform:scale(1.05)}
+.res-label{font-size:12px;font-weight:700;color:var(--muted);text-align:center}
+
+/* ── CROP DEMO ── */
+.crop-demo{position:relative;display:inline-block;margin:10px auto;display:flex;justify-content:center}
+#cropCanvas{border:2px solid var(--border);border-radius:8px;cursor:crosshair}
+.crop-code{font-family:var(--mono);font-size:13px;background:#f1f5f9;border:1px solid var(--border);padding:10px 14px;border-radius:8px;margin-top:10px;text-align:center}
+
+/* ── FILTER DEMO ── */
+.filter-demo{display:flex;flex-direction:column;align-items:center;gap:14px;margin:16px 0}
+.filter-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.filt-btn{
+  padding:8px 18px;border-radius:20px;border:2px solid var(--border);
+  background:#fff;font-size:14px;font-weight:700;cursor:pointer;
+  transition:all .2s;color:var(--muted);font-family:var(--sans);
+}
+.filt-btn.active,.filt-btn:hover{border-color:var(--purple);color:var(--purple);background:rgba(124,58,237,.06)}
+#filterCanvas{border:2px solid var(--border);border-radius:10px;max-width:100%}
+
+/* ── SHAPE DEMO ── */
+#shapeCanvas{border:2px solid var(--border);border-radius:10px;max-width:100%;display:block;margin:0 auto}
+.shape-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.shape-btn{
+  padding:8px 16px;border-radius:20px;border:2px solid var(--border);
+  background:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .2s;color:var(--muted);font-family:var(--sans);
+}
+.shape-btn:hover{border-color:var(--emerald);color:var(--emerald);background:rgba(16,185,129,.06)}
+
+/* ── COLOR MODE ── */
+.colormode-demo{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+.mode-card{
+  background:#fff;border:2px solid var(--border);border-radius:12px;
+  overflow:hidden;cursor:pointer;transition:all .2s;width:180px;
+}
+.mode-card:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.mode-card canvas{display:block;width:100%}
+.mode-label{text-align:center;font-size:13px;font-weight:700;padding:8px;background:#f8fafc}
+
+/* ── COLAB SECTION ── */
+.colab-hero{
+  background:linear-gradient(135deg,#f59e0b 0%,#f97316 100%);
+  border-radius:20px;padding:32px;color:#fff;margin-bottom:28px;
+  display:flex;gap:24px;align-items:center;flex-wrap:wrap;
+}
+.colab-logo{font-size:48px;flex-shrink:0}
+.colab-text h3{font-size:22px;font-weight:800;margin-bottom:6px}
+.colab-text p{font-size:15px;opacity:.9}
+.colab-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px}
+.colab-step{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.step-num{
+  width:32px;height:32px;background:var(--amber);color:#fff;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;margin-bottom:10px;font-family:var(--mono);
+}
+.step-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.step-body{font-size:13px;color:var(--muted);line-height:1.5}
+.colab-link{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--amber);color:#fff;font-weight:800;font-size:15px;
+  padding:12px 24px;border-radius:12px;text-decoration:none;
+  transition:opacity .15s;border:none;cursor:pointer;
+}
+.colab-link:hover{opacity:.9}
+
+/* ── WORKSHOP CARDS ── */
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.ws-card{
+  background:#fff;border:2px solid var(--border);border-radius:14px;
+  padding:20px;text-align:center;transition:all .2s;
+}
+.ws-card:hover{border-color:var(--indigo);transform:translateY(-2px)}
+.ws-num{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;
+}
+.ws-icon{font-size:36px;margin-bottom:8px}
+.ws-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.ws-desc{font-size:13px;color:var(--muted)}
+
+/* ── INFO BOX ── */
+.info-box{
+  display:flex;gap:12px;align-items:flex-start;
+  background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.25);
+  border-radius:12px;padding:14px 16px;margin:16px 0;font-size:14px;
+}
+.info-box.amber{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25)}
+.info-box.green{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25)}
+.info-icon{font-size:18px;flex-shrink:0}
+
+/* ── FORMULA BOX ── */
+.formula{
+  background:#f1f5f9;border:1px solid var(--border);border-radius:10px;
+  padding:12px 18px;font-family:var(--mono);font-size:14px;
+  text-align:center;margin:12px 0;letter-spacing:.04em;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.reveal{animation:fadeUp .6s ease both}
+.reveal-2{animation:fadeUp .6s ease .1s both}
+.reveal-3{animation:fadeUp .6s ease .2s both}
+
+/* ── FOOTER ── */
+footer{background:var(--text);color:#94a3b8;text-align:center;padding:28px;font-size:13px;font-family:var(--mono)}
+footer span{color:#e2e8f0}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .rgb-demo,.res-demo,.colormode-demo{gap:8px}
+  .ch-box{width:90px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🖼️ Image Processing</div>
+  <a class="nav-link" href="#learn">เรียนอะไร</a>
+  <a class="nav-link" href="#structure">โครงสร้างภาพ</a>
+  <a class="nav-link" href="#display">แสดงภาพ</a>
+  <a class="nav-link" href="#crop">ครอบตัด</a>
+  <a class="nav-link" href="#shapes">รูปทรง</a>
+  <a class="nav-link" href="#filters">ฟิลเตอร์</a>
+  <a class="nav-link" href="#colab">Google Colab</a>
+  <a class="nav-link" href="#workshop">Workshop</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">31906-2016 · Object Detection · JOB 2</div>
+  <h1>งานเขียนโปรแกรม<br>ประมวลผลภาพเบื้องต้น</h1>
+  <p>เรียนรู้ Image Processing ด้วย OpenCV ตั้งแต่พื้นฐานจนถึง Filter แบบโต้ตอบได้จริง</p>
+  <div class="hero-chips">
+    <div class="chip">🐍 Python</div>
+    <div class="chip">🔬 OpenCV</div>
+    <div class="chip">📊 Matplotlib</div>
+    <div class="chip">☁️ Google Colab</div>
+  </div>
+</div>
+
+<!-- WHAT YOU LEARN -->
+<section id="learn">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(124,58,237,.1);color:var(--purple)">📚 Overview</div>
+  <h2 class="reveal">เรียนอะไรใน JOB 2 นี้?</h2>
+  <p class="sec-sub reveal">ทั้งหมด 4 หัวข้อหลัก + 4 Workshop ลงมือทำ</p>
+  <div class="learn-list">
+    <div class="learn-item reveal"><div class="learn-num" style="background:#7c3aed">01</div>โครงสร้างภาพดิจิทัล (RGB, Grayscale, Resolution)</div>
+    <div class="learn-item reveal-2"><div class="learn-num" style="background:#0ea5e9">02</div>ครอบตัดและปรับขนาดภาพ</div>
+    <div class="learn-item reveal-3"><div class="learn-num" style="background:#10b981">03</div>วาดรูปทรงและใส่ข้อความบนภาพ</div>
+    <div class="learn-item reveal"><div class="learn-num" style="background:#f59e0b">04</div>ใช้ Filter: Blur & Canny Edge Detection</div>
+  </div>
+</div>
+</section>
+
+<!-- IMAGE STRUCTURE -->
+<section id="structure" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(14,165,233,.1);color:var(--sky)">🔵 โครงสร้างภาพดิจิทัล</div>
+  <h2 class="reveal">ภาพดิจิทัลคืออะไร?</h2>
+  <p class="sec-sub reveal">ภาพ = ตารางของ Pixel แต่ละ Pixel มีค่าสีที่กำหนดได้</p>
+
+  <!-- TABS RGB / GRAY -->
+  <div class="tabs reveal">
+    <div class="tab active" onclick="switchTab('rgb')">🎨 RGB Color</div>
+    <div class="tab" onclick="switchTab('gray')">⬛ Grayscale</div>
+  </div>
+
+  <div id="tab-rgb" class="tab-panel active">
+    <div class="info-box">
+      <span class="info-icon">💡</span>
+      <div>ภาพสี RGB แต่ละ Pixel มี <strong>3 ช่อง (Channel)</strong>: Red, Green, Blue — แต่ละช่องมีค่า <strong>0–255</strong> รวมเป็น array ขนาด <strong>(H × W × 3)</strong> — <strong>⚠️ OpenCV ใช้ลำดับ BGR</strong> ไม่ใช่ RGB!</div>
+    </div>
+    <div class="rgb-demo">
+      <div class="ch-box" onclick="animateChannel(this,'R')">
+        <div class="ch-top" style="background:#fee2e2">🔴</div>
+        <div class="ch-label" style="color:#dc2626">Red</div>
+        <div class="ch-values">B=<b id="rv">200</b>, G=0, R=0</div>
+      </div>
+      <div class="ch-box" onclick="animateChannel(this,'G')">
+        <div class="ch-top" style="background:#dcfce7">🟢</div>
+        <div class="ch-label" style="color:#16a34a">Green</div>
+        <div class="ch-values">B=0, G=<b id="gv">180</b>, R=0</div>
+      </div>
+      <div class="ch-box" onclick="animateChannel(this,'B')">
+        <div class="ch-top" style="background:#dbeafe">🔵</div>
+        <div class="ch-label" style="color:#2563eb">Blue</div>
+        <div class="ch-values">B=<b id="bv">220</b>, G=0, R=0</div>
+      </div>
+      <div class="ch-box">
+        <div class="ch-top" id="mixTop" style="background:rgb(200,180,220)">🎨</div>
+        <div class="ch-label" style="color:#7c3aed">Mixed</div>
+        <div class="ch-values" id="mixVal">R=200, G=180, B=220</div>
+      </div>
+    </div>
+    <div class="pixel-demo">
+      <div><canvas id="pixelCanvas" width="160" height="160"></canvas><div style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px">คลิก pixel เพื่อดูค่า</div></div>
+      <div class="pixel-info">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">📍 ค่า Pixel ที่เลือก</div>
+        <div class="pixel-val" id="pixelVal">คลิกที่ pixel ใดก็ได้ →</div>
+        <div class="info-box" style="margin-top:12px">
+          <span class="info-icon">🔢</span>
+          <div>OpenCV เก็บเป็น <strong>NumPy Array</strong><br>img.shape = <strong>(H, W, 3)</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-gray" class="tab-panel">
+    <div class="info-box">
+      <span class="info-icon">💡</span>
+      <div>Grayscale แต่ละ Pixel มีค่า <strong>เดียว 0–255</strong> (0=ดำสนิท, 255=ขาวสนิท) เก็บเป็น array ขนาด <strong>(H × W)</strong> — ใช้หน่วยความจำน้อยกว่า RGB ถึง 3 เท่า</div>
+    </div>
+    <div class="gray-bar"></div>
+    <div class="gray-labels"><span>0 (ดำ)</span><span>64</span><span>128 (เทากลาง)</span><span>192</span><span>255 (ขาว)</span></div>
+    <div style="margin:20px 0">
+      <canvas id="grayCanvas" width="400" height="120" style="border:1px solid var(--border);border-radius:10px;max-width:100%;display:block;margin:0 auto"></canvas>
+      <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--muted)">ลาก slider เพื่อเปลี่ยนค่า grayscale</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:10px;justify-content:center">
+        <span style="font-size:14px;font-weight:600">ค่า:</span>
+        <input type="range" id="graySlider" min="0" max="255" value="128" style="flex:1;max-width:300px">
+        <span class="formula" style="margin:0;min-width:60px" id="grayVal">128</span>
+      </div>
+    </div>
+    <div class="formula">แปลง RGB → Grayscale: Gray = 0.299R + 0.587G + 0.114B</div>
+  </div>
+
+  <!-- RESOLUTION -->
+  <div style="margin-top:40px">
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px">📐 ความละเอียดภาพ (Resolution)</div>
+    <p style="color:var(--muted);margin-bottom:16px">Resolution = จำนวน Pixel กว้าง × สูง — ยิ่งมากยิ่งคมชัด แต่ไฟล์ใหญ่ขึ้น</p>
+    <div class="res-demo" id="resDemo"></div>
+    <div class="info-box amber">
+      <span class="info-icon">📌</span>
+      <div>ใน OpenCV: <strong>img.shape[1]</strong> = กว้าง (Width/Columns), <strong>img.shape[0]</strong> = สูง (Height/Rows)</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- DISPLAY IMAGE -->
+<section id="display">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(16,185,129,.1);color:var(--emerald)">🖥️ การแสดงภาพ</div>
+  <h2 class="reveal">แสดงภาพ 2 วิธี</h2>
+  <p class="sec-sub reveal">OpenCV imshow กับ Matplotlib — เลือกให้ถูกสถานการณ์</p>
+  <div class="grid2">
+    <div class="card reveal">
+      <div class="card-icon">🖼️</div>
+      <div class="card-title" style="color:var(--purple)">OpenCV — imshow()</div>
+      <div class="card-body">เหมาะสำหรับ <strong>local script</strong> เปิดหน้าต่างใหม่แสดงภาพ กด esc ปิด — <strong>ใช้ใน Colab ไม่ได้!</strong></div>
+      <div class="code-wrap" style="margin-top:12px">
+        <pre style="padding:14px;font-size:12px"><span class="kw">import</span> cv2
+img = cv2.imread(<span class="st">'image.jpg'</span>)
+cv2.imshow(<span class="st">'Title'</span>, img)
+cv2.waitKey(<span class="nu">0</span>)</pre>
+      </div>
+    </div>
+    <div class="card reveal-2">
+      <div class="card-icon">📊</div>
+      <div class="card-title" style="color:var(--sky)">Matplotlib — plt.imshow()</div>
+      <div class="card-body">เหมาะสำหรับ <strong>Google Colab</strong> ต้องแปลง BGR→RGB ก่อน เพราะ OpenCV ใช้ BGR</div>
+      <div class="code-wrap" style="margin-top:12px">
+        <pre style="padding:14px;font-size:12px"><span class="kw">import</span> cv2
+<span class="kw">from</span> matplotlib <span class="kw">import</span> pyplot <span class="kw">as</span> plt
+img = cv2.imread(<span class="st">'image.jpg'</span>)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+plt.imshow(img)
+plt.axis(<span class="st">'off'</span>); plt.show()</pre>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:28px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">📋 แสดงโครงสร้างภาพ</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="code-title">python · ดู shape และ dtype</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">import</span> cv2
+img = cv2.imread(<span class="st">'my_image.jpg'</span>)
+<span class="fn">print</span>(<span class="st">"Shape:"</span>,       img.shape)          <span class="cm"># (H, W, 3)</span>
+<span class="fn">print</span>(<span class="st">"Height:"</span>,      img.shape[<span class="nu">0</span>])       <span class="cm"># จำนวนแถว</span>
+<span class="fn">print</span>(<span class="st">"Width:"</span>,       img.shape[<span class="nu">1</span>])       <span class="cm"># จำนวนคอลัมน์</span>
+<span class="fn">print</span>(<span class="st">"Channels:"</span>,    img.shape[<span class="nu">2</span>])       <span class="cm"># 3 = BGR</span>
+<span class="fn">print</span>(<span class="st">"Data type:"</span>,   img.dtype)           <span class="cm"># uint8</span></pre>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- CROP & RESIZE -->
+<section id="crop" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(244,63,94,.1);color:var(--rose)">✂️ ครอบตัด & ปรับขนาด</div>
+  <h2 class="reveal">Crop & Resize</h2>
+  <p class="sec-sub reveal">ตัดเอาเฉพาะส่วนที่ต้องการ หรือปรับขนาดก่อนส่งเข้าโมเดล</p>
+  <div class="grid2">
+    <div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:10px">✂️ Crop — ลากเพื่อครอบตัด</div>
+      <canvas id="cropCanvas" width="340" height="220"></canvas>
+      <div class="crop-code" id="cropCode">cropped = img[y1:y2, x1:x2]</div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px">ลากบน canvas เพื่อดูโค้ด</div>
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:10px">🔲 Resize</div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-title">python · resize</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="cm"># กำหนดขนาดที่ต้องการ</span>
+resized = cv2.resize(img, (<span class="nu">300</span>, <span class="nu">300</span>))
+
+<span class="cm"># ย่อตามสัดส่วน 50%</span>
+h, w = img.shape[:<span class="nu">2</span>]
+resized = cv2.resize(img,
+    (<span class="fn">int</span>(w*<span class="nu">0.5</span>), <span class="fn">int</span>(h*<span class="nu">0.5</span>)))</pre>
+      </div>
+      <div style="margin-top:14px;font-size:15px;font-weight:700;margin-bottom:8px">ทดลองปรับขนาด</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px;color:var(--muted)">Scale:</span>
+        <input type="range" id="resizeSlider" min="10" max="200" value="100" style="flex:1">
+        <span id="resizeVal" style="font-family:var(--mono);font-size:14px;min-width:50px">100%</span>
+      </div>
+      <canvas id="resizeCanvas" width="300" height="180" style="border:1px solid var(--border);border-radius:8px;max-width:100%;display:block"></canvas>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- SHAPES & TEXT -->
+<section id="shapes">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(16,185,129,.1);color:var(--emerald)">🔷 รูปทรง & ข้อความ</div>
+  <h2 class="reveal">วาดรูปทรงและข้อความบนภาพ</h2>
+  <p class="sec-sub reveal">คลิกปุ่มด้านล่างเพื่อดู demo แต่ละ function</p>
+  <div class="shape-controls">
+    <button class="shape-btn" onclick="drawShape('line')">📏 Line</button>
+    <button class="shape-btn" onclick="drawShape('rect')">⬜ Rectangle</button>
+    <button class="shape-btn" onclick="drawShape('circle')">⭕ Circle</button>
+    <button class="shape-btn" onclick="drawShape('text')">🔤 Text</button>
+    <button class="shape-btn" onclick="drawShape('all')">✨ ทั้งหมด</button>
+  </div>
+  <canvas id="shapeCanvas" width="560" height="280"></canvas>
+  <div id="shapeCode" class="code-wrap" style="margin-top:16px">
+    <div class="code-header"><span class="code-title" id="shapeCodeTitle">python · เลือกรูปทรงด้านบน</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+    <pre id="shapeCodePre" style="color:#a5b4fc;font-size:13px">
+<span style="color:#475569"># คลิกปุ่มด้านบนเพื่อดูโค้ด</span></pre>
+  </div>
+
+  <div style="margin-top:28px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">🔤 putText() parameters</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="code-title">python · ใส่ข้อความบนภาพ</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+      <pre>cv2.putText(
+    img,                               <span class="cm"># ภาพที่ต้องการเขียน</span>
+    text=<span class="st">'Hello, AI!'</span>,              <span class="cm"># ข้อความ</span>
+    org=(<span class="nu">50</span>, <span class="nu">100</span>),                   <span class="cm"># พิกัด (x, y) มุมซ้ายล่าง</span>
+    fontFace=cv2.FONT_HERSHEY_SIMPLEX, <span class="cm"># แบบอักษร</span>
+    fontScale=<span class="nu">1</span>,                      <span class="cm"># ขนาดอักษร</span>
+    color=(<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>),               <span class="cm"># สี BGR</span>
+    thickness=<span class="nu">2</span>,                      <span class="cm"># ความหนา</span>
+    lineType=cv2.LINE_AA               <span class="cm"># Anti-Aliased</span>
+)</pre>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- FILTERS -->
+<section id="filters" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(79,70,229,.1);color:var(--indigo)">🌀 Filters</div>
+  <h2 class="reveal">Filter พื้นฐาน</h2>
+  <p class="sec-sub reveal">กดเพื่อดูผลลัพธ์ Filter แต่ละแบบแบบ real-time</p>
+
+  <div class="filter-demo">
+    <div class="filter-controls">
+      <button class="filt-btn active" onclick="applyFilter('original',this)">📷 Original</button>
+      <button class="filt-btn" onclick="applyFilter('blur',this)">🌫️ Gaussian Blur</button>
+      <button class="filt-btn" onclick="applyFilter('box',this)">📦 Box Blur</button>
+      <button class="filt-btn" onclick="applyFilter('median',this)">🔵 Median Blur</button>
+      <button class="filt-btn" onclick="applyFilter('edge',this)">⚡ Canny Edge</button>
+      <button class="filt-btn" onclick="applyFilter('gray',this)">⬛ Grayscale</button>
+    </div>
+    <canvas id="filterCanvas" width="480" height="280"></canvas>
+    <div id="filterCode" style="width:100%;max-width:480px"></div>
+  </div>
+
+  <!-- Blur types -->
+  <div style="margin-top:28px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">🌫️ Blur 3 แบบ</div>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-icon">🔵</div>
+        <div class="card-title">Gaussian Blur</div>
+        <div class="card-body">ใช้บ่อยที่สุด ลดสัญญาณรบกวนได้ดี ก่อนทำ Edge Detection</div>
+        <div class="code-wrap" style="margin-top:10px"><pre style="padding:10px;font-size:12px">cv2.GaussianBlur(img, (<span class="nu">5</span>,<span class="nu">5</span>), <span class="nu">0</span>)</pre></div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <div class="card-title">Box Blur</div>
+        <div class="card-body">ค่าเฉลี่ยของ pixel รอบข้าง เร็วกว่า Gaussian แต่ผลลัพธ์หยาบกว่า</div>
+        <div class="code-wrap" style="margin-top:10px"><pre style="padding:10px;font-size:12px">cv2.blur(img, (<span class="nu">5</span>,<span class="nu">5</span>))</pre></div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔴</div>
+        <div class="card-title">Median Blur</div>
+        <div class="card-body">ใช้ค่ากลาง ดีมากสำหรับลด Salt &amp; Pepper noise รักษาขอบได้ดี</div>
+        <div class="code-wrap" style="margin-top:10px"><pre style="padding:10px;font-size:12px">cv2.medianBlur(img, <span class="nu">5</span>)</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color mode + Canny -->
+  <div style="margin-top:32px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">🎨 เปลี่ยนโหมดสี + ⚡ Canny Edge</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <div class="card-title">cvtColor()</div>
+        <div class="card-body">แปลงโหมดสีต่าง ๆ</div>
+        <div class="code-wrap" style="margin-top:10px"><pre style="padding:10px;font-size:12px"><span class="cm"># BGR → RGB (Matplotlib)</span>
+cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+<span class="cm"># BGR → Gray</span>
+cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+<span class="cm"># BGR → HSV</span>
+cv2.cvtColor(img, cv2.COLOR_BGR2HSV)</pre></div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Canny Edge Detection</div>
+        <div class="card-body">หาขอบ (edge) ในภาพ ต้องแปลงเป็น Grayscale ก่อน แล้ว Blur เพื่อลด noise</div>
+        <div class="code-wrap" style="margin-top:10px"><pre style="padding:10px;font-size:12px"><span class="cm"># ขั้นตอน: Gray → Blur → Canny</span>
+gray = cv2.cvtColor(img,
+         cv2.COLOR_BGR2GRAY)
+blurred = cv2.GaussianBlur(
+         gray, (<span class="nu">5</span>,<span class="nu">5</span>), <span class="nu">0</span>)
+edges = cv2.Canny(blurred,
+         <span class="nu">100</span>, <span class="nu">200</span>)</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- GOOGLE COLAB -->
+<section id="colab">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(245,158,11,.1);color:var(--amber)">☁️ Google Colab</div>
+  <h2 class="reveal">วิธีใช้ Google Colab</h2>
+  <p class="sec-sub reveal">ไม่ต้องติดตั้งอะไรเพิ่ม รันได้เลยบน browser ฟรี!</p>
+
+  <div class="colab-hero reveal">
+    <div class="colab-logo">🚀</div>
+    <div class="colab-text">
+      <h3>Google Colab คืออะไร?</h3>
+      <p>Jupyter Notebook บน Cloud ของ Google — มี Python, OpenCV, GPU ให้ใช้ฟรี ไม่ต้องลงโปรแกรมอะไรเพิ่ม เปิดแค่ browser ก็เขียนโค้ดได้เลย!</p>
+    </div>
+  </div>
+
+  <div class="colab-steps">
+    <div class="colab-step reveal">
+      <div class="step-num">1</div>
+      <div class="step-title">เปิด Colab</div>
+      <div class="step-body">ไปที่ <strong>colab.research.google.com</strong> หรือค้นหา "Google Colab" แล้ว Login ด้วย Google Account</div>
+    </div>
+    <div class="colab-step reveal-2">
+      <div class="step-num">2</div>
+      <div class="step-title">สร้าง Notebook ใหม่</div>
+      <div class="step-body">กด <strong>"New Notebook"</strong> หรือ File → New notebook จะได้ไฟล์ .ipynb</div>
+    </div>
+    <div class="colab-step reveal-3">
+      <div class="step-num">3</div>
+      <div class="step-title">ติดตั้ง Library</div>
+      <div class="step-body">พิมพ์ในเซล: <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">!pip install opencv-python</code> แล้วกด Shift+Enter</div>
+    </div>
+    <div class="colab-step reveal">
+      <div class="step-num">4</div>
+      <div class="step-title">อัปโหลดภาพ</div>
+      <div class="step-body">ใช้คำสั่ง <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">from google.colab import files<br>uploaded = files.upload()</code></div>
+    </div>
+    <div class="colab-step reveal-2">
+      <div class="step-num">5</div>
+      <div class="step-title">ใช้ Matplotlib แสดงภาพ</div>
+      <div class="step-body">ใน Colab ต้องใช้ <strong>plt.imshow()</strong> แทน cv2.imshow() และต้องแปลง BGR→RGB ก่อน</div>
+    </div>
+    <div class="colab-step reveal-3">
+      <div class="step-num">6</div>
+      <div class="step-title">Save งาน</div>
+      <div class="step-body">Colab บันทึกอัตโนมัติใน Google Drive หรือกด File → Save a copy in Drive</div>
+    </div>
+  </div>
+
+  <!-- Complete Colab Code -->
+  <div style="font-size:16px;font-weight:700;margin-bottom:12px">📋 Template โค้ดสำหรับ Colab (พร้อมใช้)</div>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-title">🚀 Google Colab · Complete Template</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># ══════════════════════════════════════════════
+#  Image Processing Template — Google Colab
+# ══════════════════════════════════════════════</span>
+
+<span class="cm"># 1) ติดตั้ง (รันแค่ครั้งแรก)</span>
+<span class="fn">!pip install</span> opencv-python matplotlib <span class="at">-q</span>
+
+<span class="cm"># 2) Import</span>
+<span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> matplotlib <span class="kw">import</span> pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> google.colab <span class="kw">import</span> files
+
+<span class="cm"># 3) อัปโหลดภาพ</span>
+uploaded = files.upload()
+filename = <span class="fn">list</span>(uploaded.keys())[<span class="nu">0</span>]
+
+<span class="cm"># 4) โหลดภาพ</span>
+img = cv2.imread(filename)
+img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+<span class="cm"># 5) แสดงโครงสร้าง</span>
+<span class="fn">print</span>(<span class="st">f"Shape: {img.shape}"</span>)
+<span class="fn">print</span>(<span class="st">f"H={img.shape[0]}, W={img.shape[1]}, C={img.shape[2]}"</span>)
+
+<span class="cm"># 6) แสดงภาพ</span>
+plt.figure(figsize=(<span class="nu">10</span>, <span class="nu">4</span>))
+
+plt.subplot(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">1</span>)
+plt.imshow(img_rgb); plt.title(<span class="st">'Original'</span>); plt.axis(<span class="st">'off'</span>)
+
+plt.subplot(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">2</span>)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+plt.imshow(gray, cmap=<span class="st">'gray'</span>); plt.title(<span class="st">'Grayscale'</span>); plt.axis(<span class="st">'off'</span>)
+
+plt.subplot(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">3</span>)
+blurred = cv2.GaussianBlur(gray, (<span class="nu">5</span>,<span class="nu">5</span>), <span class="nu">0</span>)
+edges = cv2.Canny(blurred, <span class="nu">100</span>, <span class="nu">200</span>)
+plt.imshow(edges, cmap=<span class="st">'gray'</span>); plt.title(<span class="st">'Canny Edge'</span>); plt.axis(<span class="st">'off'</span>)
+
+plt.tight_layout(); plt.show()</pre>
+  </div>
+
+  <a class="colab-link" href="https://colab.research.google.com" target="_blank">
+    🚀 เปิด Google Colab
+  </a>
+</div>
+</section>
+
+<!-- WORKSHOP -->
+<section id="workshop" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag reveal" style="background:rgba(79,70,229,.1);color:var(--indigo)">🛠️ Workshop</div>
+  <h2 class="reveal">แบบฝึกหัด 4 ชิ้นงาน</h2>
+  <p class="sec-sub reveal">ทำตามลำดับ แต่ละงานสะสมทักษะเพิ่มขึ้น</p>
+  <div class="ws-grid">
+    <div class="ws-card reveal">
+      <div class="ws-num">Workshop 2-1</div>
+      <div class="ws-icon">🔍</div>
+      <div class="ws-title">แสดงโครงสร้างภาพ</div>
+      <div class="ws-desc">print shape, dtype, H, W, Channels ของภาพที่เลือก</div>
+    </div>
+    <div class="ws-card reveal-2">
+      <div class="ws-num">Workshop 2-2</div>
+      <div class="ws-icon">✂️</div>
+      <div class="ws-title">ครอบตัดและปรับขนาด</div>
+      <div class="ws-desc">Crop ส่วนที่สนใจ แล้ว resize ให้เป็น 300×300</div>
+    </div>
+    <div class="ws-card reveal-3">
+      <div class="ws-num">Workshop 2-3</div>
+      <div class="ws-icon">🎨</div>
+      <div class="ws-title">รูปทรงและข้อความ</div>
+      <div class="ws-desc">วาด line, rect, circle และใส่ข้อความชื่อตัวเองบนภาพ</div>
+    </div>
+    <div class="ws-card reveal">
+      <div class="ws-num">Workshop 2-4</div>
+      <div class="ws-icon">⚡</div>
+      <div class="ws-title">ปรับแต่งภาพ</div>
+      <div class="ws-desc">ใช้ Gaussian Blur + Canny Edge Detection แสดงผลเคียงกัน</div>
+    </div>
+  </div>
+
+  <div class="info-box green" style="margin-top:24px">
+    <span class="info-icon">🏆</span>
+    <div><strong>JOB 2 (งานส่ง)</strong>: สร้างภาพจากรูปทรงโดยไม่ต้องใช้ภาพต้นฉบับ — วาดรูปทรงหลายชิ้นให้เป็นภาพที่สวยงามหรือมีความหมาย</div>
+  </div>
+</div>
+</section>
+
+<footer>
+  <span>31906-2016 Object Detection · JOB 2 Image Processing</span><br>
+  วิทยาลัยเทคนิคเลย · สาขาเทคโนโลยีปัญญาประดิษฐ์ · 2569
+</footer>
+
+<script>
+// ── TABS ──
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['rgb','gray'][i]===id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ── COPY CODE ──
+function copyCode(btn){
+  const pre=btn.closest('.code-wrap').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(()=>{
+    btn.textContent='copied!';btn.style.color='#86efac';
+    setTimeout(()=>{btn.textContent='copy';btn.style.color='';},1600);
+  });
+}
+
+// ── RGB PIXEL GRID ──
+(function(){
+  const cvs=document.getElementById('pixelCanvas'),ctx=cvs.getContext('2d');
+  const SIZE=10,COLS=16,ROWS=16;
+  cvs.width=COLS*SIZE;cvs.height=ROWS*SIZE;
+  const pixels=[];
+  for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){
+    const R=Math.round(Math.random()*80+100+c*9)%256;
+    const G=Math.round(Math.random()*80+60+r*7)%256;
+    const B=Math.round(Math.random()*80+150)%256;
+    pixels.push({R,G,B});
+    ctx.fillStyle=`rgb(${R},${G},${B})`;
+    ctx.fillRect(c*SIZE,r*SIZE,SIZE,SIZE);
+  }}
+  cvs.addEventListener('click',e=>{
+    const rect=cvs.getBoundingClientRect();
+    const sx=cvs.width/rect.width,sy=cvs.height/rect.height;
+    const c=Math.floor((e.clientX-rect.left)*sx/SIZE);
+    const r=Math.floor((e.clientY-rect.top)*sy/SIZE);
+    if(c<0||c>=COLS||r<0||r>=ROWS)return;
+    const p=pixels[r*COLS+c];
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.strokeRect(c*SIZE,r*SIZE,SIZE,SIZE);
+    document.getElementById('pixelVal').innerHTML=
+      `<b>位置</b>: row=${r}, col=${c}<br><span style="color:#dc2626">■</span> R = ${p.R}<br><span style="color:#16a34a">■</span> G = ${p.G}<br><span style="color:#2563eb">■</span> B = ${p.B}<br><b>BGR</b>: [${p.B}, ${p.G}, ${p.R}]`;
+  });
+})();
+
+// ── GRAY SLIDER ──
+const graySlider=document.getElementById('graySlider');
+const grayValEl=document.getElementById('grayVal');
+const grayCvs=document.getElementById('grayCanvas');
+const grayCtx=grayCvs.getContext('2d');
+function drawGray(v){
+  grayValEl.textContent=v;
+  const g=parseInt(v);
+  grayCtx.clearRect(0,0,grayCvs.width,grayCvs.height);
+  // gradient bar
+  const grd=grayCtx.createLinearGradient(0,0,grayCvs.width,0);
+  grd.addColorStop(0,'#000');grd.addColorStop(1,'#fff');
+  grayCtx.fillStyle=grd;
+  grayCtx.fillRect(0,0,grayCvs.width,60);
+  // marker
+  const x=(g/255)*grayCvs.width;
+  grayCtx.fillStyle=g<128?'#fff':'#000';
+  grayCtx.fillRect(x-2,0,4,60);
+  // solid box
+  grayCtx.fillStyle=`rgb(${g},${g},${g})`;
+  grayCtx.fillRect(0,70,grayCvs.width,50);
+  grayCtx.fillStyle=g<128?'#fff':'#000';
+  grayCtx.font='bold 18px IBM Plex Mono';
+  grayCtx.textAlign='center';
+  grayCtx.fillText(`Gray value: ${g}`,grayCvs.width/2,100);
+}
+graySlider.addEventListener('input',e=>drawGray(e.target.value));
+drawGray(128);
+
+// ── RGB CHANNEL ANIMATION ──
+function animateChannel(el,ch){
+  el.style.transform='scale(1.1)';
+  setTimeout(()=>el.style.transform='',300);
+}
+
+// ── RESOLUTION DEMO ──
+(function(){
+  const container=document.getElementById('resDemo');
+  const sizes=[[16,16,'16×16'],[32,32,'32×32'],[64,64,'64×64'],[128,128,'128×128']];
+  sizes.forEach(([w,h,label])=>{
+    const wrap=document.createElement('div');wrap.className='res-box';
+    const cvs=document.createElement('canvas');
+    cvs.width=w;cvs.height=h;
+    const scale=Math.max(1,Math.round(120/w));
+    cvs.style.width=(w*scale)+'px';cvs.style.height=(h*scale)+'px';
+    const ctx=cvs.getContext('2d');
+    // draw a simple image
+    for(let y=0;y<h;y++){for(let x=0;x<w;x++){
+      const r=Math.round(255*(x/w));
+      const g=Math.round(255*(y/h));
+      const b=150;
+      ctx.fillStyle=`rgb(${r},${g},${b})`;
+      ctx.fillRect(x,y,1,1);
+    }}
+    const lbl=document.createElement('div');lbl.className='res-label';lbl.textContent=label;
+    wrap.appendChild(cvs);wrap.appendChild(lbl);container.appendChild(wrap);
+  });
+})();
+
+// ── CROP DEMO ──
+(function(){
+  const cvs=document.getElementById('cropCanvas');
+  const ctx=cvs.getContext('2d');
+  let drag=false,sx=0,sy=0,ex=0,ey=0;
+
+  function drawScene(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    // background gradient
+    const grd=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    grd.addColorStop(0,'#dbeafe');grd.addColorStop(1,'#fce7f3');
+    ctx.fillStyle=grd;ctx.fillRect(0,0,cvs.width,cvs.height);
+    // fake objects
+    ctx.fillStyle='#7c3aed';ctx.beginPath();ctx.arc(100,80,40,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#10b981';ctx.fillRect(200,120,80,70);
+    ctx.fillStyle='#f59e0b';ctx.beginPath();ctx.moveTo(300,60);ctx.lineTo(350,130);ctx.lineTo(250,130);ctx.closePath();ctx.fill();
+    // crop rect
+    if(ex!==sx||ey!==sy){
+      ctx.strokeStyle='#f43f5e';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+      ctx.strokeRect(Math.min(sx,ex),Math.min(sy,ey),Math.abs(ex-sx),Math.abs(ey-sy));
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(244,63,94,.1)';
+      ctx.fillRect(Math.min(sx,ex),Math.min(sy,ey),Math.abs(ex-sx),Math.abs(ey-sy));
+    }
+  }
+
+  cvs.addEventListener('mousedown',e=>{const r=cvs.getBoundingClientRect();sx=(e.clientX-r.left)*(cvs.width/r.width);sy=(e.clientY-r.top)*(cvs.height/r.height);drag=true;});
+  cvs.addEventListener('mousemove',e=>{if(!drag)return;const r=cvs.getBoundingClientRect();ex=(e.clientX-r.left)*(cvs.width/r.width);ey=(e.clientY-r.top)*(cvs.height/r.height);drawScene();});
+  cvs.addEventListener('mouseup',()=>{
+    drag=false;
+    const x1=Math.round(Math.min(sx,ex)),y1=Math.round(Math.min(sy,ey));
+    const x2=Math.round(Math.max(sx,ex)),y2=Math.round(Math.max(sy,ey));
+    document.getElementById('cropCode').textContent=`cropped = img[${y1}:${y2}, ${x1}:${x2}]`;
+  });
+  drawScene();
+})();
+
+// ── RESIZE DEMO ──
+(function(){
+  const src=document.getElementById('cropCanvas');
+  const cvs=document.getElementById('resizeCanvas');
+  const ctx=cvs.getContext('2d');
+  const slider=document.getElementById('resizeSlider');
+  const valEl=document.getElementById('resizeVal');
+  function redraw(){
+    const pct=parseInt(slider.value)/100;
+    const w=Math.max(10,Math.round(300*pct));
+    const h=Math.max(10,Math.round(180*pct));
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.imageSmoothingEnabled=pct<0.5?false:true;
+    const ox=(cvs.width-w)/2,oy=(cvs.height-h)/2;
+    ctx.fillStyle='#f1f5f9';ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.drawImage(src,ox,oy,w,h);
+    // border
+    ctx.strokeStyle='#7c3aed';ctx.lineWidth=2;ctx.setLineDash([4,2]);
+    ctx.strokeRect(ox,oy,w,h);ctx.setLineDash([]);
+    valEl.textContent=slider.value+'%';
+  }
+  slider.addEventListener('input',redraw);
+  redraw();
+})();
+
+// ── SHAPE DEMO ──
+(function(){
+  const cvs=document.getElementById('shapeCanvas');
+  const ctx=cvs.getContext('2d');
+  const codes={
+    line:{title:'cv2.line()',pre:`<span class="cm"># วาดเส้น</span>
+cv2.line(img,
+    (<span class="nu">50</span>, <span class="nu">50</span>),           <span class="cm"># จุดเริ่มต้น (x,y)</span>
+    (<span class="nu">350</span>, <span class="nu">50</span>),          <span class="cm"># จุดสิ้นสุด (x,y)</span>
+    (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>),        <span class="cm"># สี BGR = แดง</span>
+    <span class="nu">3</span>)                   <span class="cm"># ความหนา</span>`},
+    rect:{title:'cv2.rectangle()',pre:`<span class="cm"># วาดสี่เหลี่ยม</span>
+cv2.rectangle(img,
+    (<span class="nu">80</span>, <span class="nu">80</span>),            <span class="cm"># มุมซ้ายบน</span>
+    (<span class="nu">250</span>, <span class="nu">200</span>),          <span class="cm"># มุมขวาล่าง</span>
+    (<span class="nu">0</span>, <span class="nu">255</span>, <span class="nu">0</span>),        <span class="cm"># สี BGR = เขียว</span>
+    <span class="nu">3</span>)                   <span class="cm"># ความหนา (-1=เต็ม)</span>`},
+    circle:{title:'cv2.circle()',pre:`<span class="cm"># วาดวงกลม</span>
+cv2.circle(img,
+    (<span class="nu">200</span>, <span class="nu">140</span>),          <span class="cm"># จุดศูนย์กลาง</span>
+    <span class="nu">80</span>,                  <span class="cm"># รัศมี</span>
+    (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>),        <span class="cm"># สี BGR = น้ำเงิน</span>
+    <span class="nu">3</span>)                   <span class="cm"># -1 = เต็ม</span>`},
+    text:{title:'cv2.putText()',pre:`<span class="cm"># ใส่ข้อความ</span>
+cv2.putText(img,
+    <span class="st">'Hello, AI!'</span>,
+    (<span class="nu">60</span>, <span class="nu">160</span>),            <span class="cm"># พิกัด</span>
+    cv2.FONT_HERSHEY_SIMPLEX,
+    <span class="nu">1.2</span>,                 <span class="cm"># ขนาด</span>
+    (<span class="nu">100</span>, <span class="nu">0</span>, <span class="nu">200</span>),      <span class="cm"># สี</span>
+    <span class="nu">2</span>)`},
+    all:{title:'All Shapes',pre:`<span class="cm"># ทั้งหมดรวมกัน</span>
+cv2.line(img, (<span class="nu">50</span>,<span class="nu">50</span>), (<span class="nu">350</span>,<span class="nu">50</span>), (<span class="nu">0</span>,<span class="nu">0</span>,<span class="nu">255</span>), <span class="nu">3</span>)
+cv2.rectangle(img, (<span class="nu">80</span>,<span class="nu">80</span>), (<span class="nu">250</span>,<span class="nu">200</span>), (<span class="nu">0</span>,<span class="nu">255</span>,<span class="nu">0</span>), <span class="nu">3</span>)
+cv2.circle(img, (<span class="nu">200</span>,<span class="nu">140</span>), <span class="nu">80</span>, (<span class="nu">255</span>,<span class="nu">0</span>,<span class="nu">0</span>), <span class="nu">3</span>)
+cv2.putText(img, <span class="st">'Hello!'</span>, (<span class="nu">60</span>,<span class="nu">240</span>),
+    cv2.FONT_HERSHEY_SIMPLEX, <span class="nu">1</span>, (<span class="nu">100</span>,<span class="nu">0</span>,<span class="nu">200</span>), <span class="nu">2</span>)`}
+  };
+
+  window.drawShape=function(type){
+    const grd=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    grd.addColorStop(0,'#f0f9ff');grd.addColorStop(1,'#fdf2f8');
+    ctx.fillStyle=grd;ctx.fillRect(0,0,cvs.width,cvs.height);
+
+    if(type==='line'||type==='all'){
+      ctx.strokeStyle='#dc2626';ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(50,50);ctx.lineTo(510,50);ctx.stroke();
+    }
+    if(type==='rect'||type==='all'){
+      ctx.strokeStyle='#16a34a';ctx.lineWidth=4;
+      ctx.strokeRect(80,80,200,120);
+    }
+    if(type==='circle'||type==='all'){
+      ctx.strokeStyle='#2563eb';ctx.lineWidth=4;
+      ctx.beginPath();ctx.arc(420,160,80,0,Math.PI*2);ctx.stroke();
+    }
+    if(type==='text'||type==='all'){
+      ctx.fillStyle='#7c3aed';ctx.font='bold 28px Sarabun';
+      ctx.fillText('Hello, AI! 🤖',60,240);
+    }
+
+    const c=codes[type];
+    document.getElementById('shapeCodeTitle').textContent='python · '+c.title;
+    document.getElementById('shapeCodePre').innerHTML=c.pre;
+  };
+  drawShape('all');
+})();
+
+// ── FILTER DEMO ──
+(function(){
+  const cvs=document.getElementById('filterCanvas');
+  const ctx=cvs.getContext('2d');
+  const W=cvs.width,H=cvs.height;
+
+  function drawBase(){
+    // colorful base image
+    const grd=ctx.createLinearGradient(0,0,W,H);
+    grd.addColorStop(0,'#7c3aed');grd.addColorStop(.5,'#0ea5e9');grd.addColorStop(1,'#10b981');
+    ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+    // shapes
+    ctx.fillStyle='rgba(255,255,255,.3)';ctx.beginPath();ctx.arc(120,100,60,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,200,0,.4)';ctx.fillRect(250,80,100,100);
+    ctx.fillStyle='rgba(255,255,255,.2)';
+    ctx.beginPath();ctx.moveTo(400,60);ctx.lineTo(450,160);ctx.lineTo(350,160);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 22px Sarabun';ctx.fillText('Image Processing',60,220);
+  }
+
+  const filterCodes={
+    original:{label:'Original',code:'img = cv2.imread("image.jpg")'},
+    blur:{label:'Gaussian Blur',code:'blurred = cv2.GaussianBlur(img, (15,15), 0)'},
+    box:{label:'Box Blur',code:'blurred = cv2.blur(img, (15,15))'},
+    median:{label:'Median Blur',code:'blurred = cv2.medianBlur(img, 15)'},
+    edge:{label:'Canny Edge',code:'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nblurred = cv2.GaussianBlur(gray, (5,5), 0)\nedges = cv2.Canny(blurred, 100, 200)'},
+    gray:{label:'Grayscale',code:'gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)'}
+  };
+
+  window.applyFilter=function(type,btn){
+    document.querySelectorAll('.filt-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    drawBase();
+    const data=ctx.getImageData(0,0,W,H);
+    const d=data.data;
+
+    if(type==='gray'||type==='edge'){
+      for(let i=0;i<d.length;i+=4){const g=Math.round(.299*d[i]+.587*d[i+1]+.114*d[i+2]);d[i]=d[i+1]=d[i+2]=g;}
+      ctx.putImageData(data,0,0);
+    }
+    if(type==='blur'||type==='box'||type==='median'){
+      // simple box blur simulation
+      const orig=new Uint8ClampedArray(d);
+      const r=7;
+      for(let y=r;y<H-r;y++){for(let x=r;x<W-r;x++){
+        let R=0,G=0,B=0,cnt=0;
+        for(let dy=-r;dy<=r;dy++){for(let dx=-r;dx<=r;dx++){
+          const i=((y+dy)*W+(x+dx))*4;
+          R+=orig[i];G+=orig[i+1];B+=orig[i+2];cnt++;
+        }}
+        const i=(y*W+x)*4;
+        d[i]=R/cnt;d[i+1]=G/cnt;d[i+2]=B/cnt;
+      }}
+      ctx.putImageData(data,0,0);
+    }
+    if(type==='edge'){
+      // simple edge detection visualization (fake canny)
+      const gray2=ctx.getImageData(0,0,W,H);
+      const gd=gray2.data;
+      const orig=new Uint8ClampedArray(gd);
+      for(let y=1;y<H-1;y++){for(let x=1;x<W-1;x++){
+        const i=(y*W+x)*4;
+        const gx=orig[((y-1)*W+x+1)*4]-orig[((y-1)*W+x-1)*4]
+                +2*orig[(y*W+x+1)*4]-2*orig[(y*W+x-1)*4]
+                +orig[((y+1)*W+x+1)*4]-orig[((y+1)*W+x-1)*4];
+        const gy=orig[((y+1)*W+x-1)*4]+2*orig[((y+1)*W+x)*4]+orig[((y+1)*W+x+1)*4]
+                -orig[((y-1)*W+x-1)*4]-2*orig[((y-1)*W+x)*4]-orig[((y-1)*W+x+1)*4];
+        const mag=Math.min(255,Math.sqrt(gx*gx+gy*gy));
+        gd[i]=gd[i+1]=gd[i+2]=(mag>60?255:0);
+      }}
+      ctx.putImageData(gray2,0,0);
+    }
+
+    const f=filterCodes[type];
+    document.getElementById('filterCode').innerHTML=`<div class="code-wrap"><div class="code-header"><span class="code-title">python · ${f.label}</span><button class="code-copy" onclick="copyCode(this)">copy</button></div><pre>${f.code}</pre></div>`;
+  };
+
+  drawBase();
+  document.getElementById('filterCode').innerHTML=`<div class="code-wrap"><div class="code-header"><span class="code-title">python · Original</span></div><pre>img = cv2.imread(<span class="st">"image.jpg"</span>)</pre></div>`;
+})();
+</script>
+</body>
+</html>
