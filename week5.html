@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Train YOLO11 Custom Model — JOB 5</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Sarabun:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#f97316;--amber:#f59e0b;--pink:#ec4899;--rose:#f43f5e;
+  --purple:#7c3aed;--sky:#0ea5e9;--emerald:#10b981;--lime:#84cc16;
+  --cyan:#06b6d4;--indigo:#4f46e5;--fuchsia:#d946ef;
+  --bg:#fff7ed;--card:#fff;--text:#1c1917;--muted:#78716c;--border:#e7e5e4;
+  --mono:'IBM Plex Mono',monospace;--sans:'Sarabun',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.7;overflow-x:hidden}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;overflow-x:auto;gap:0}
+.nav-logo{font-size:15px;font-weight:800;color:var(--orange);padding:14px 16px 14px 0;white-space:nowrap;flex-shrink:0}
+.nav-link{font-size:13px;font-weight:600;color:var(--muted);padding:14px 11px;white-space:nowrap;text-decoration:none;border-bottom:2px solid transparent;transition:all .2s}
+.nav-link:hover{color:var(--orange);border-color:var(--orange)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#7c2d12 0%,#c2410c 35%,#f97316 65%,#fbbf24 100%);color:#fff;text-align:center;padding:72px 20px 80px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(236,72,153,.3),transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(124,58,237,.25),transparent 60%)}
+.hero-tag{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:4px 16px;border-radius:20px;font-size:13px;margin-bottom:16px;font-family:var(--mono);position:relative;z-index:1}
+.hero h1{font-size:clamp(28px,5vw,50px);font-weight:900;line-height:1.15;margin-bottom:12px;position:relative;z-index:1}
+.hero h1 span{color:#fde68a}
+.hero p{font-size:17px;opacity:.9;max-width:560px;margin:0 auto 28px;position:relative;z-index:1}
+.hero-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;position:relative;z-index:1}
+.chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600}
+
+/* LAYOUT */
+.wrap{max-width:940px;margin:0 auto;padding:0 20px}
+section{padding:64px 0}
+section:nth-child(even){background:#fff}
+.sec-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:10px;font-weight:700}
+h2{font-size:clamp(22px,4vw,34px);font-weight:800;margin-bottom:8px;line-height:1.2}
+.sec-sub{font-size:16px;color:var(--muted);margin-bottom:32px}
+
+/* CARDS */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.04);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.card-icon{font-size:30px;margin-bottom:10px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.card-body{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* INFO BOXES */
+.info-box{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:14px;border:1px solid}
+.info-box.blue{background:rgba(14,165,233,.07);border-color:rgba(14,165,233,.3)}
+.info-box.green{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.3)}
+.info-box.amber{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.3)}
+.info-box.red{background:rgba(244,63,94,.07);border-color:rgba(244,63,94,.3)}
+.info-box.purple{background:rgba(124,58,237,.07);border-color:rgba(124,58,237,.3)}
+.info-box.orange{background:rgba(249,115,22,.07);border-color:rgba(249,115,22,.3)}
+.info-icon{font-size:18px;flex-shrink:0}
+
+/* FIX BADGE */
+.fix-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.35);color:var(--rose);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;font-weight:700;margin-left:8px;vertical-align:middle}
+.new-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35);color:var(--emerald);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;font-weight:700;margin-left:6px;vertical-align:middle}
+.ok-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.35);color:var(--sky);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;font-weight:700;margin-left:6px;vertical-align:middle}
+
+/* CODE */
+.code-wrap{background:#1c1917;border-radius:14px;overflow:hidden;margin:12px 0}
+.code-header{background:#292524;padding:8px 16px;display:flex;align-items:center;justify-content:space-between}
+.code-title{font-family:var(--mono);font-size:12px;color:#fbbf24}
+.code-copy{font-family:var(--mono);font-size:11px;color:#a8a29e;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:5px;padding:3px 10px;cursor:pointer;transition:all .15s}
+.code-copy:hover{background:rgba(251,191,36,.25);color:#fff}
+pre{padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:1.85;overflow-x:auto;color:#e7e5e4}
+.kw{color:#c084fc}.fn{color:#67e8f9}.st{color:#86efac}.cm{color:#57534e;font-style:italic}.nu{color:#fbbf24}.at{color:#fb923c}.var{color:#f9a8d4}
+
+/* STEP CARDS */
+.steps{display:flex;flex-direction:column;gap:0}
+.step-row{display:flex;gap:0;position:relative}
+.step-left{display:flex;flex-direction:column;align-items:center;width:56px;flex-shrink:0}
+.step-num{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:16px;font-weight:700;color:#fff;flex-shrink:0;margin-top:10px;z-index:1;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.step-line{width:2px;flex:1;min-height:16px}
+.step-row:last-child .step-line{display:none}
+.step-content{flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin:6px 0 6px 14px;transition:border-color .2s,box-shadow .2s}
+.step-content:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.step-title{font-size:16px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.step-body{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* FOLDER TREE */
+.folder-tree{background:#1c1917;color:#e7e5e4;border-radius:12px;padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:2;overflow-x:auto;margin:12px 0}
+.ft-folder{color:#fbbf24}.ft-file{color:#86efac}.ft-note{color:#57534e;font-style:italic}
+
+/* YAML VIEWER */
+.yaml-block{background:#0f172a;border-radius:12px;padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:1.9;overflow-x:auto;margin:12px 0;border:1px solid #1e293b}
+.yk{color:#38bdf8}.yv{color:#86efac}.yc{color:#475569;font-style:italic}.yn{color:#fbbf24}.ys{color:#fb923c}
+
+/* TRAINING PROGRESS */
+.train-sim{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin:16px 0}
+.train-top{display:flex;gap:16px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.train-title{font-size:16px;font-weight:700}
+.train-controls{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.train-btn{padding:8px 18px;border-radius:10px;border:none;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-start{background:linear-gradient(135deg,var(--orange),var(--amber));color:#fff}
+.btn-start:hover{opacity:.9}
+.btn-reset{background:#f5f5f4;color:var(--muted);border:1px solid var(--border)}
+.btn-reset:hover{background:var(--border)}
+.epoch-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.epoch-label{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:110px}
+.epoch-track{flex:1;background:#f5f5f4;border-radius:8px;height:20px;overflow:hidden}
+.epoch-bar{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;transition:width .08s linear;width:0%}
+.epoch-val{font-family:var(--mono);font-size:13px;min-width:60px;text-align:right;font-weight:700}
+.train-log{background:#0f172a;border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.8;height:160px;overflow-y:auto;color:#94a3b8;margin-top:12px}
+.log-line{color:#94a3b8}.log-good{color:#4ade80}.log-warn{color:#fbbf24}.log-info{color:#38bdf8}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0}
+.metric-card{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s}
+.metric-val{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1}
+.metric-label{font-size:13px;color:var(--muted);margin-top:6px}
+.metric-desc{font-size:11px;color:var(--border);margin-top:3px}
+
+/* CONFUSION EXPLAIN */
+.conf-table{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:280px;margin:12px auto}
+.conf-cell{border-radius:8px;padding:12px;text-align:center;font-size:13px;font-weight:700}
+
+/* DETECT RESULT */
+.detect-demo{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:14px 0}
+#detectCanvas{border:2px solid var(--border);border-radius:10px;display:block;margin:0 auto;max-width:100%}
+
+/* WORKSHOP CARDS */
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.ws-card{background:#fff;border:2px solid var(--border);border-radius:14px;padding:20px;text-align:center;transition:all .2s}
+.ws-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+.ws-num{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.ws-icon{font-size:36px;margin-bottom:8px}
+.ws-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.ws-desc{font-size:13px;color:var(--muted)}
+
+/* JOB CARD */
+.job-card{background:linear-gradient(135deg,#fff7ed,#fff1f2);border:2px solid #fed7aa;border-radius:18px;padding:28px}
+.job-steps{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.job-step{display:flex;align-items:flex-start;gap:12px;font-size:14px}
+.job-step-num{width:30px;height:30px;border-radius:8px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;font-family:var(--mono);flex-shrink:0}
+
+/* SCORE FORMULA */
+.score-formula{background:linear-gradient(135deg,#7c2d12,#c2410c);color:#fff;border-radius:14px;padding:20px 24px;text-align:center;margin-top:16px}
+.formula-big{font-family:var(--mono);font-size:22px;font-weight:700;margin-bottom:8px}
+.formula-parts{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-size:14px;opacity:.85}
+
+footer{background:#1c1917;color:#78716c;text-align:center;padding:28px;font-size:13px;font-family:var(--mono)}
+footer span{color:#e7e5e4}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🤖 Train YOLO11</div>
+  <a class="nav-link" href="#overview">Overview</a>
+  <a class="nav-link" href="#ws51">Workshop 5-1</a>
+  <a class="nav-link" href="#structure">โครงสร้าง</a>
+  <a class="nav-link" href="#yaml">data.yaml</a>
+  <a class="nav-link" href="#train">Training</a>
+  <a class="nav-link" href="#eval">Evaluation</a>
+  <a class="nav-link" href="#ws52">Workshop 5-2</a>
+  <a class="nav-link" href="#job5">JOB 5</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">31906-2016 · Object Detection · JOB 5</div>
+  <h1>งานเทรนโมเดล<br><span>รู้จำใบหน้าเพื่อน</span></h1>
+  <p>เทรน YOLO11n บน custom dataset ตั้งแต่ต้น — ตรวจจับวัตถุและใบหน้าด้วยโมเดลของตัวเอง</p>
+  <div class="hero-chips">
+    <div class="chip">⚡ YOLO11n</div>
+    <div class="chip">🤖 Ultralytics</div>
+    <div class="chip">☁️ Google Colab</div>
+    <div class="chip">📊 mAP Evaluation</div>
+    <div class="chip">🎭 Face Detection</div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<section id="overview">
+<div class="wrap">
+  <div class="sec-tag" style="background:rgba(249,115,22,.1);color:var(--orange)">📚 Overview</div>
+  <h2>เรียนอะไรใน JOB 5?</h2>
+  <p class="sec-sub">ทั้งหมด 3 เรื่องหลัก — ตั้งแต่ train จนถึง deploy ใช้งานจริง</p>
+  <div class="grid3">
+    <div class="card" style="border-top:4px solid var(--orange)">
+      <div class="card-icon">🏋️</div>
+      <div class="card-title">เทรนโมเดล YOLO11n</div>
+      <div class="card-body">นำ dataset จาก JOB 4 มาเทรน custom model โดยใช้ pretrained weights เป็นจุดเริ่มต้น</div>
+    </div>
+    <div class="card" style="border-top:4px solid var(--pink)">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">ตรวจจับวัตถุจากภาพนิ่ง</div>
+      <div class="card-body">ใช้โมเดลที่เทรนแล้วตรวจจับวัตถุในภาพใหม่ + แสดงผลด้วย OpenCV</div>
+    </div>
+    <div class="card" style="border-top:4px solid var(--purple)">
+      <div class="card-icon">👥</div>
+      <div class="card-title">รู้จำใบหน้าเพื่อน</div>
+      <div class="card-body">เก็บภาพ label เทรน แล้วทดสอบแยกสมาชิกกลุ่มออกจากเพื่อนทั้งชั้น</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- WORKSHOP 5-1 -->
+<section id="ws51" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag" style="background:rgba(249,115,22,.1);color:var(--orange)">🛠️ Workshop 5-1</div>
+  <h2>การเทรนโมเดล YOLO11n</h2>
+  <p class="sec-sub">10 ขั้นตอน ตั้งแต่ download dataset จนได้โมเดลที่ใช้งานได้</p>
+
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#f97316,#fbbf24)">1</div><div class="step-line" style="background:linear-gradient(#f97316,#ec4899)"></div></div>
+      <div class="step-content" id="structure">
+        <div class="step-title">ดาวน์โหลด dataset จาก Roboflow (Workshop 4)</div>
+        <div class="step-body">เข้า Roboflow → เลือก dataset ที่ทำไว้ → Versions → Export Dataset → เลือก format <strong>YOLOv11</strong> → Download ZIP</div>
+        <div class="info-box blue" style="margin-top:10px">
+          <span class="info-icon">💡</span>
+          <div>หรือจะใช้ Roboflow API ก็ได้ — ไม่ต้องดาวน์โหลดมาเครื่อง สะดวกกว่าถ้าไฟล์ใหญ่</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#ec4899,#f97316)">2</div><div class="step-line" style="background:linear-gradient(#ec4899,#7c3aed)"></div></div>
+      <div class="step-content">
+        <div class="step-title">แตกไฟล์ ตรวจสอบโครงสร้าง dataset</div>
+        <div class="step-body">แตก .zip แล้วตรวจดูให้ครบก่อนอัปโหลด — โครงสร้างต้องตรงตามนี้:</div>
+        <div class="folder-tree">
+<span class="ft-folder">Dataset/</span>
+├── <span class="ft-folder">test/</span>
+│   ├── <span class="ft-folder">images/</span>   <span class="ft-note">← ภาพทดสอบ</span>
+│   └── <span class="ft-folder">labels/</span>   <span class="ft-note">← annotation ทดสอบ</span>
+├── <span class="ft-folder">train/</span>
+│   ├── <span class="ft-folder">images/</span>   <span class="ft-note">← ภาพสำหรับเทรน (ส่วนใหญ่)</span>
+│   └── <span class="ft-folder">labels/</span>   <span class="ft-note">← annotation เทรน</span>
+├── <span class="ft-folder">valid/</span>
+│   ├── <span class="ft-folder">images/</span>   <span class="ft-note">← ภาพสำหรับ validate</span>
+│   └── <span class="ft-folder">labels/</span>   <span class="ft-note">← annotation validate</span>
+└── <span class="ft-file">data.yaml</span>     <span class="ft-note">← config file (สำคัญมาก!)</span>
+        </div>
+        <div class="info-box amber">
+          <span class="info-icon">⚠️</span>
+          <div>ชื่อไฟล์ภาพกับ .txt ต้องตรงกัน — <code style="background:rgba(245,158,11,.15);padding:1px 6px;border-radius:4px">img001.jpg ↔ img001.txt</code> และค่าใน .txt ต้องเป็น normalized 0–1 เสมอ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-row" id="yaml">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#7c3aed,#ec4899)">3</div><div class="step-line" style="background:linear-gradient(#7c3aed,#0ea5e9)"></div></div>
+      <div class="step-content">
+        <div class="step-title">ตรวจสอบไฟล์ data.yaml <span class="ok-badge">✅ สำคัญมาก</span></div>
+        <div class="step-body">ไฟล์ config บอก path ของ dataset + จำนวน class + ชื่อ class — ต้องถูกต้อง 100% ก่อนเทรน</div>
+        <div class="yaml-block">
+<span class="yc"># data.yaml — ตัวอย่าง structure ที่ถูกต้อง</span>
+
+<span class="yk">path</span>: <span class="yv">/content/dataset</span>          <span class="yc"># root folder บน Colab</span>
+<span class="yk">train</span>: <span class="yv">train/images</span>              <span class="yc"># ตำแหน่ง train images</span>
+<span class="yk">val</span>: <span class="yv">valid/images</span>               <span class="yc"># ตำแหน่ง validation images</span>
+<span class="yk">test</span>: <span class="yv">test/images</span>                <span class="yc"># ตำแหน่ง test images</span>
+
+<span class="yk">nc</span>: <span class="yn">3</span>                              <span class="yc"># จำนวน class</span>
+<span class="yk">names</span>: [<span class="yv">'rose'</span>, <span class="yv">'tulip'</span>, <span class="yv">'daisy'</span>]   <span class="yc"># ชื่อ class ตามลำดับ</span>
+
+<span class="yc"># roboflow metadata (ข้ามได้)</span>
+<span class="yk">roboflow</span>:
+  <span class="yk">workspace</span>: <span class="yv">my-workspace</span>
+  <span class="yk">project</span>: <span class="yv">my-project</span>
+  <span class="yk">version</span>: <span class="yn">1</span>
+  <span class="yk">license</span>: <span class="yv">CC BY 4.0</span>
+        </div>
+        <div class="info-box red">
+          <span class="info-icon">🚨</span>
+          <div><strong>ข้อผิดพลาดที่พบบ่อย:</strong> path ใน data.yaml อาจยังเป็น path บนเครื่อง local อยู่ — บน Colab ต้องเปลี่ยน <code style="background:rgba(244,63,94,.1);padding:1px 6px;border-radius:4px">path:</code> เป็น <code style="background:rgba(244,63,94,.1);padding:1px 6px;border-radius:4px">/content/dataset</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed)">4</div><div class="step-line" style="background:linear-gradient(#0ea5e9,#10b981)"></div></div>
+      <div class="step-content">
+        <div class="step-title">บีบอัดเป็นไฟล์ .zip เพื่ออัปโหลด</div>
+        <div class="step-body">บีบอัดโฟลเดอร์ dataset ทั้งหมด (รวม data.yaml ด้วย) เป็น <strong>dataset.zip</strong></div>
+        <div class="info-box blue">
+          <span class="info-icon">💡</span>
+          <div>บน Mac: คลิกขวา → Compress / บน Windows: คลิกขวา → Send to → Compressed folder — ให้ data.yaml อยู่ใน root ของ zip</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#10b981,#0ea5e9)">5</div><div class="step-line" style="background:linear-gradient(#10b981,#f59e0b)"></div></div>
+      <div class="step-content">
+        <div class="step-title">สร้าง Colab Notebook ใหม่ + เปิด GPU</div>
+        <div class="step-body">colab.research.google.com → New Notebook → ตั้งชื่อ <strong>Workshop5</strong></div>
+        <div class="info-box orange">
+          <span class="info-icon">⚡</span>
+          <div><strong>เปิด GPU:</strong> Runtime → Change runtime type → <strong>T4 GPU</strong> → Save — ถ้าไม่เปิด GPU การเทรนจะช้าหลายเท่า</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#f59e0b,#f97316)">6</div><div class="step-line" style="background:linear-gradient(#f59e0b,#ec4899)"></div></div>
+      <div class="step-content">
+        <div class="step-title">ติดตั้ง ultralytics</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · Cell 1 — ติดตั้ง</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="fn">!pip install</span> ultralytics <span class="at">-q</span>
+
+<span class="cm"># ตรวจสอบว่า GPU พร้อมใช้งาน</span>
+<span class="kw">import</span> torch
+<span class="fn">print</span>(<span class="st">f"GPU available: {torch.cuda.is_available()}"</span>)
+<span class="fn">print</span>(<span class="st">f"Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#ec4899,#f97316)">7</div><div class="step-line" style="background:linear-gradient(#ec4899,#7c3aed)"></div></div>
+      <div class="step-content">
+        <div class="step-title">อัปโหลด dataset.zip</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · Cell 2 — Upload</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">from</span> google.colab <span class="kw">import</span> files
+
+<span class="cm"># กด "Choose Files" แล้วเลือก dataset.zip</span>
+uploaded = files.upload()
+zip_name = <span class="fn">list</span>(uploaded.keys())[<span class="nu">0</span>]
+<span class="fn">print</span>(<span class="st">f"Uploaded: {zip_name}"</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 8 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#7c3aed,#ec4899)">8</div><div class="step-line" style="background:linear-gradient(#7c3aed,#f97316)"></div></div>
+      <div class="step-content">
+        <div class="step-title">แตกไฟล์ไปที่ /content/dataset</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · Cell 3 — Unzip</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">import</span> zipfile, os
+
+<span class="cm"># แตกไฟล์ไปที่ /content/dataset</span>
+<span class="kw">with</span> zipfile.ZipFile(zip_name, <span class="st">'r'</span>) <span class="kw">as</span> z:
+    z.extractall(<span class="st">'/content/dataset'</span>)
+
+<span class="fn">print</span>(<span class="st">"✅ Extracted to /content/dataset"</span>)
+
+<span class="cm"># ตรวจสอบโครงสร้าง</span>
+<span class="kw">for</span> root, dirs, files_list <span class="kw">in</span> os.walk(<span class="st">'/content/dataset'</span>):
+    level = root.replace(<span class="st">'/content/dataset'</span>, <span class="st">''</span>).count(os.sep)
+    indent = <span class="st">'  '</span> * level
+    <span class="fn">print</span>(<span class="st">f"{indent}{os.path.basename(root)}/"</span>)</pre>
+        </div>
+        <div class="info-box amber">
+          <span class="info-icon">📌</span>
+          <div>ไฟล์ทุกอย่างบน Colab ต้องอยู่ใน <code style="background:rgba(245,158,11,.15);padding:1px 6px;border-radius:4px">/content/</code> เสมอ — ถ้า session หมด ไฟล์จะหายต้องอัปโหลดใหม่</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 9 — TRAIN (highlighted) -->
+    <div class="step-row" id="train">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#f97316,#ec4899)">9</div><div class="step-line" style="background:linear-gradient(#f97316,#10b981)"></div></div>
+      <div class="step-content" style="border-color:rgba(249,115,22,.4);box-shadow:0 4px 20px rgba(249,115,22,.1)">
+        <div class="step-title">🔥 โหลด YOLO11n + เทรน <span class="fix-badge">⚠️ มี note</span></div>
+        <div class="step-body">โหลด pretrained YOLO11n แล้วเทรนบน custom dataset</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · Cell 4 — Train YOLO11n</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">from</span> ultralytics <span class="kw">import</span> YOLO
+
+<span class="cm"># โหลด pre-trained YOLO11n (ดาวน์โหลดอัตโนมัติ ~6MB)</span>
+model = YOLO(<span class="st">'yolo11n.pt'</span>)
+
+<span class="cm"># เทรนโมเดล</span>
+results = model.train(
+    data=<span class="st">'/content/dataset/data.yaml'</span>,  <span class="cm"># ✅ ต้องเป็น absolute path</span>
+    epochs=<span class="nu">50</span>,       <span class="cm"># รอบการเทรน (ดูหมายเหตุด้านล่าง)</span>
+    imgsz=<span class="nu">640</span>,       <span class="cm"># ขนาดภาพที่ใช้เทรน</span>
+    batch=<span class="nu">16</span>,        <span class="cm"># จำนวนภาพต่อ batch (T4 GPU รับได้)</span>
+    device=<span class="nu">0</span>,        <span class="cm"># 0=GPU, 'cpu'=CPU</span>
+    project=<span class="st">'/content/runs'</span>,
+    name=<span class="st">'workshop5'</span>,
+    exist_ok=<span class="nu">True</span>
+)
+
+<span class="fn">print</span>(<span class="st">f"✅ Training complete!"</span>)
+<span class="fn">print</span>(<span class="st">f"Best model: /content/runs/workshop5/weights/best.pt"</span>)</pre>
+        </div>
+        <div class="info-box red">
+          <span class="info-icon">⚠️</span>
+          <div><strong>50 epochs สำหรับทดสอบเท่านั้น</strong> — ผลอาจยังไม่ดีพอ ถ้าต้องการ mAP สูงแนะนำ <strong>100–150 epochs</strong> สำหรับ dataset เล็ก (~200–500 ภาพ) / 300+ epochs สำหรับ final model</div>
+        </div>
+        <div class="info-box green">
+          <span class="info-icon">💡</span>
+          <div><strong>เพิ่ม batch parameter</strong> — ใน PPTX ไม่มี แต่สำคัญ: <code style="background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px">batch=16</code> เหมาะกับ T4 GPU บน Colab — ถ้า OOM ให้ลดเป็น 8</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 10 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#10b981,#0ea5e9)">10</div><div class="step-line" style="background:linear-gradient(#10b981,#7c3aed)"></div></div>
+      <div class="step-content">
+        <div class="step-title">โมเดลที่เทรนแล้วอยู่ที่ไหน?</div>
+        <div class="step-body">เมื่อเทรนเสร็จ Ultralytics จะบันทึกโมเดลใน:</div>
+        <div class="folder-tree">
+<span class="ft-folder">/content/runs/workshop5/</span>
+├── <span class="ft-folder">weights/</span>
+│   ├── <span class="ft-file">best.pt</span>    <span class="ft-note">← ⭐ โมเดลที่ mAP สูงสุดระหว่างเทรน</span>
+│   └── <span class="ft-file">last.pt</span>    <span class="ft-note">← โมเดลจาก epoch สุดท้าย</span>
+├── <span class="ft-file">results.csv</span>  <span class="ft-note">← log ทุก epoch</span>
+├── <span class="ft-file">results.png</span>  <span class="ft-note">← กราฟ loss / mAP</span>
+└── <span class="ft-file">confusion_matrix.png</span>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="card" style="border-color:rgba(249,115,22,.3)">
+            <div style="font-size:20px;margin-bottom:6px">⭐</div>
+            <div style="font-size:14px;font-weight:700;color:var(--orange)">best.pt — ใช้งานจริง</div>
+            <div style="font-size:13px;color:var(--muted)">เลือก epoch ที่ val mAP สูงที่สุด — ใช้สำหรับ inference เสมอ</div>
+          </div>
+          <div class="card">
+            <div style="font-size:20px;margin-bottom:6px">🔄</div>
+            <div style="font-size:14px;font-weight:700">last.pt — resume training</div>
+            <div style="font-size:13px;color:var(--muted)">ใช้ถ้าต้องการเทรนต่อจากจุดที่หยุด ไม่ควรใช้ทำ inference</div>
+          </div>
+        </div>
+        <div class="code-wrap" style="margin-top:12px">
+          <div class="code-header"><span class="code-title">python · ดาวน์โหลด best.pt กลับเครื่อง</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">from</span> google.colab <span class="kw">import</span> files
+files.download(<span class="st">'/content/runs/workshop5/weights/best.pt'</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end steps -->
+</div>
+</section>
+
+<!-- TRAINING SIMULATION -->
+<section id="eval">
+<div class="wrap">
+  <div class="sec-tag" style="background:rgba(16,185,129,.1);color:var(--emerald)">📊 Evaluation</div>
+  <h2>ประเมินประสิทธิภาพโมเดล</h2>
+  <p class="sec-sub">Step 10 — ดูว่าโมเดลเทรนดีแค่ไหนด้วย metrics มาตรฐาน</p>
+
+  <!-- TRAINING PROGRESS SIM -->
+  <div class="train-sim">
+    <div class="train-top">
+      <div class="train-title">🏋️ Training Progress Simulator</div>
+      <div class="train-controls">
+        <select id="epochSelect" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);font-family:var(--sans);font-size:13px;background:#fff">
+          <option value="50">50 epochs</option>
+          <option value="100">100 epochs</option>
+        </select>
+        <button class="train-btn btn-start" id="btnTrain" onclick="startTraining()">▶ เริ่มจำลอง</button>
+        <button class="train-btn btn-reset" onclick="resetTraining()">↺ รีเซ็ต</button>
+      </div>
+    </div>
+    <div class="epoch-row"><div class="epoch-label">Epoch</div><div class="epoch-track"><div class="epoch-bar" id="epochBar" style="background:linear-gradient(90deg,#f97316,#fbbf24)">0%</div></div><div class="epoch-val" id="epochVal" style="color:var(--orange)">0 / 50</div></div>
+    <div class="epoch-row"><div class="epoch-label">Train Loss</div><div class="epoch-track"><div class="epoch-bar" id="lossBar" style="background:#ef4444;width:80%">high</div></div><div class="epoch-val" id="lossVal" style="color:#ef4444">2.45</div></div>
+    <div class="epoch-row"><div class="epoch-label">val mAP50</div><div class="epoch-track"><div class="epoch-bar" id="mapBar" style="background:linear-gradient(90deg,#10b981,#0ea5e9);width:5%">—</div></div><div class="epoch-val" id="mapVal" style="color:var(--emerald)">0.00</div></div>
+    <div class="train-log" id="trainLog">
+      <div class="log-info">// กด "เริ่มจำลอง" เพื่อดูผลการเทรน...</div>
+    </div>
+  </div>
+
+  <!-- EVAL CODE -->
+  <div style="margin-top:24px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:10px">Code สำหรับประเมินโมเดล</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="code-title">python · Evaluate model (val set)</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">from</span> ultralytics <span class="kw">import</span> YOLO
+
+<span class="cm"># โหลด best model</span>
+model = YOLO(<span class="st">'/content/runs/workshop5/weights/best.pt'</span>)
+
+<span class="cm"># ประเมินบน validation set</span>
+metrics = model.val(data=<span class="st">'/content/dataset/data.yaml'</span>)
+
+<span class="fn">print</span>(<span class="st">f"mAP50:    {metrics.box.map50:.4f}"</span>)   <span class="cm"># IoU=0.5</span>
+<span class="fn">print</span>(<span class="st">f"mAP50-95: {metrics.box.map:.4f}"</span>)    <span class="cm"># IoU=0.5:0.95</span>
+<span class="fn">print</span>(<span class="st">f"Precision: {metrics.box.mp:.4f}"</span>)
+<span class="fn">print</span>(<span class="st">f"Recall:    {metrics.box.mr:.4f}"</span>)</pre>
+    </div>
+  </div>
+
+  <!-- METRICS EXPLAINED -->
+  <div style="margin-top:28px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:14px">📏 Metrics ที่ต้องรู้</div>
+    <div class="metrics-grid">
+      <div class="metric-card" style="border-color:rgba(249,115,22,.4)" onclick="this.style.borderColor='#f97316'">
+        <div class="metric-val" style="color:var(--orange)">mAP</div>
+        <div class="metric-label">Mean Average Precision</div>
+        <div class="metric-desc">ค่าหลักที่บอกความแม่น — ยิ่งสูงยิ่งดี</div>
+      </div>
+      <div class="metric-card" style="border-color:rgba(14,165,233,.4)">
+        <div class="metric-val" style="color:var(--sky)">P</div>
+        <div class="metric-label">Precision</div>
+        <div class="metric-desc">จาก detect ทั้งหมด ถูกกี่ % (TP/TP+FP)</div>
+      </div>
+      <div class="metric-card" style="border-color:rgba(16,185,129,.4)">
+        <div class="metric-val" style="color:var(--emerald)">R</div>
+        <div class="metric-label">Recall</div>
+        <div class="metric-desc">จากวัตถุจริงทั้งหมด จับได้กี่ % (TP/TP+FN)</div>
+      </div>
+      <div class="metric-card" style="border-color:rgba(124,58,237,.4)">
+        <div class="metric-val" style="color:var(--purple)">IoU</div>
+        <div class="metric-label">Intersection over Union</div>
+        <div class="metric-desc">bbox ทับกันกับ ground truth กี่ %</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP50 vs MAP50-95 -->
+  <div class="info-box purple" style="margin-top:16px">
+    <span class="info-icon">📌</span>
+    <div><strong>mAP50 vs mAP50-95</strong> — mAP50 วัดที่ IoU threshold 0.5 (ง่ายกว่า) / mAP50-95 วัดเฉลี่ย 10 threshold (0.5:0.05:0.95) — เป็น metric มาตรฐาน COCO ที่เข้มกว่า</div>
+  </div>
+</div>
+</section>
+
+<!-- WORKSHOP 5-2 -->
+<section id="ws52" style="background:#fff">
+<div class="wrap">
+  <div class="sec-tag" style="background:rgba(236,72,153,.1);color:var(--pink)">🛠️ Workshop 5-2</div>
+  <h2>ตรวจจับวัตถุจากภาพนิ่ง</h2>
+  <p class="sec-sub">ใช้โมเดลที่เทรนแล้วตรวจจับวัตถุในภาพใหม่ + แสดงผลด้วย OpenCV</p>
+
+  <div class="steps">
+
+    <!-- WS52 STEP 1 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#ec4899,#f97316)">1</div><div class="step-line" style="background:linear-gradient(#ec4899,#7c3aed)"></div></div>
+      <div class="step-content">
+        <div class="step-title">อัปโหลดภาพที่ต้องการตรวจสอบ</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · อัปโหลดภาพทดสอบ</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">from</span> google.colab <span class="kw">import</span> files
+
+<span class="cm"># อัปโหลดภาพที่ต้องการตรวจจับ</span>
+uploaded = files.upload()
+img_filename = <span class="fn">list</span>(uploaded.keys())[<span class="nu">0</span>]
+<span class="fn">print</span>(<span class="st">f"Image: {img_filename}"</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- WS52 STEP 2 -->
+    <div class="step-row">
+      <div class="step-left"><div class="step-num" style="background:linear-gradient(135deg,#7c3aed,#ec4899)">2</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">โหลดโมเดล → ตรวจจับ → แสดงผลด้วย OpenCV</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-title">python · Detect + Display with OpenCV</span><button class="code-copy" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">from</span> ultralytics <span class="kw">import</span> YOLO
+<span class="kw">import</span> cv2
+<span class="kw">from</span> matplotlib <span class="kw">import</span> pyplot <span class="kw">as</span> plt
+
+<span class="cm"># โหลดโมเดลที่เทรนใน Workshop 5-1</span>
+model = YOLO(<span class="st">'/content/runs/workshop5/weights/best.pt'</span>)
+
+<span class="cm"># รัน inference</span>
+results = model(img_filename, conf=<span class="nu">0.35</span>, imgsz=<span class="nu">640</span>)
+result  = results[<span class="nu">0</span>]
+
+<span class="cm"># แสดงผลจำนวนที่ detect ได้</span>
+<span class="fn">print</span>(<span class="st">f"พบวัตถุ: {len(result.boxes)} ชิ้น"</span>)
+<span class="kw">for</span> box <span class="kw">in</span> result.boxes:
+    label = model.names[<span class="fn">int</span>(box.cls)]
+    conf  = <span class="fn">float</span>(box.conf)
+    x1, y1, x2, y2 = [<span class="fn">int</span>(v) <span class="kw">for</span> v <span class="kw">in</span> box.xyxy[<span class="nu">0</span>]]
+    <span class="fn">print</span>(<span class="st">f"  ✓ {label:15s}  conf:{conf:.2f}  box:[{x1},{y1},{x2},{y2}]"</span>)
+
+<span class="cm"># แสดงภาพผลด้วย matplotlib (สำหรับ Colab)</span>
+img_result = result.plot()           <span class="cm"># วาด bbox + label บนภาพ</span>
+img_rgb    = img_result[..., ::<span class="nu">-1</span>]  <span class="cm"># BGR → RGB</span>
+
+plt.figure(figsize=(<span class="nu">12</span>, <span class="nu">8</span>))
+plt.imshow(img_rgb)
+plt.axis(<span class="st">'off'</span>)
+plt.title(<span class="st">f'YOLO11n Custom — {len(result.boxes)} objects detected'</span>)
+plt.tight_layout()
+plt.show()
+
+<span class="cm"># บันทึกภาพผล</span>
+cv2.imwrite(<span class="st">'result.jpg'</span>, result.plot())
+files.download(<span class="st">'result.jpg'</span>)</pre>
+        </div>
+
+        <!-- DETECT DEMO -->
+        <div class="detect-demo" style="margin-top:14px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:10px">🎨 Preview — ผลลัพธ์ที่ได้ (จำลอง)</div>
+          <canvas id="detectCanvas" width="480" height="300"></canvas>
+          <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px">ตัวอย่างผลลัพธ์การตรวจจับ — bounding box + label + confidence</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- JOB 5 -->
+<section id="job5">
+<div class="wrap">
+  <div class="sec-tag" style="background:rgba(249,115,22,.1);color:var(--orange)">🏆 JOB 5</div>
+  <h2>งานเทรนโมเดลรู้จำใบหน้าเพื่อน</h2>
+  <p class="sec-sub">แบ่งกลุ่ม เก็บภาพ เทรน ทดสอบ — แข่งกัน!</p>
+
+  <div class="job-card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap">
+      <div style="font-size:40px">👥</div>
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--orange);letter-spacing:.1em;font-weight:700">JOB 5 — ส่งจริง</div>
+        <div style="font-size:22px;font-weight:800">โปรแกรมรู้จำใบหน้าเพื่อน</div>
+      </div>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:16px">แบ่งกลุ่ม กลุ่มละ 5 คน — เทรน YOLO11n เท่านั้น</p>
+
+    <div class="job-steps">
+      <div class="job-step"><div class="job-step-num">1</div><div><strong>เก็บข้อมูลภาพใบหน้า</strong> — ถ่ายภาพสมาชิกในกลุ่มให้หลากหลาย หลายมุม หลายแสง หลายระยะ คนละอย่างน้อย 50–100 ภาพ</div></div>
+      <div class="job-step"><div class="job-step-num">2</div><div><strong>ติดป้ายกำกับ (Label)</strong> — วาด bounding box รอบใบหน้า ระบุ class เป็นชื่อสมาชิก (5 class = 5 คน)</div></div>
+      <div class="job-step"><div class="job-step-num">3</div><div><strong>จัดเตรียม dataset</strong> — แบ่ง train/val/test เหมาะสม เพิ่ม augmentation ผ่าน Roboflow</div></div>
+      <div class="job-step"><div class="job-step-num">4</div><div><strong>เทรนโมเดล YOLO11n เท่านั้น</strong> — ใช้ <code style="background:rgba(249,115,22,.12);padding:1px 6px;border-radius:4px">yolo11n.pt</code> เป็น pretrained weight เท่านั้น ห้ามใช้ yolo11s/m/l/x</div></div>
+      <div class="job-step"><div class="job-step-num">5</div><div><strong>ประเมินประสิทธิภาพ</strong> — บันทึก mAP50 จาก val set</div></div>
+      <div class="job-step"><div class="job-step-num">6</div><div><strong>ทดสอบจริง</strong> — ทดสอบแยกสมาชิกกลุ่มออกจากเพื่อนทั้งชั้นเรียน — นับว่าจำถูกกี่คน</div></div>
+    </div>
+
+    <div class="score-formula">
+      <div class="formula-big">คะแนน = (mAP ÷ 20) + จำนวนที่แยกถูกต้อง</div>
+      <div class="formula-parts">
+        <span>mAP 80% → 4 คะแนน</span>
+        <span>+</span>
+        <span>แยกถูก 4/5 คน → +4 คะแนน</span>
+        <span>=</span>
+        <span style="font-weight:800;font-size:16px">8 คะแนน</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIPS FOR FACE DETECTION -->
+  <div style="margin-top:24px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">💡 Tips สำหรับ Face Detection โดยเฉพาะ</div>
+    <div class="grid2">
+      <div class="info-box green" style="margin:0">
+        <span class="info-icon">📸</span>
+        <div><strong>เก็บภาพหลากหลาย:</strong> หน้าตรง, ด้านข้าง, เงียน, มีแว่น, มีหมวก, แสงต่างๆ — โมเดลต้องเจอ variation ระหว่างเทรน</div>
+      </div>
+      <div class="info-box orange" style="margin:0">
+        <span class="info-icon">🏷️</span>
+        <div><strong>Label ให้แน่น:</strong> bbox ต้องครอบแค่ใบหน้า ไม่รวมคอหรือไหล่ — bbox ที่หลวมทำให้โมเดล confused</div>
+      </div>
+      <div class="info-box blue" style="margin:0">
+        <span class="info-icon">⚖️</span>
+        <div><strong>Balance ภาพทุก class:</strong> แต่ละคนควรมีจำนวนภาพใกล้เคียงกัน — ถ้าคนหนึ่งมี 200 แต่อีกคนมี 20 โมเดลจะ bias</div>
+      </div>
+      <div class="info-box purple" style="margin:0">
+        <span class="info-icon">🔢</span>
+        <div><strong>เพิ่ม epochs:</strong> face detection ต้องการอย่างน้อย <strong>100 epochs</strong> — 50 epochs มักยังไม่ converge</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSHOP SUMMARY -->
+  <div style="margin-top:32px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px">📋 สรุป Workshop ทั้งหมด</div>
+    <div class="ws-grid">
+      <div class="ws-card">
+        <div class="ws-num">Workshop 5-1</div>
+        <div class="ws-icon">🏋️</div>
+        <div class="ws-title">Train YOLO11n</div>
+        <div class="ws-desc">Dataset → data.yaml → Train → weights/best.pt</div>
+      </div>
+      <div class="ws-card">
+        <div class="ws-num">Workshop 5-2</div>
+        <div class="ws-icon">🔍</div>
+        <div class="ws-title">Detect ภาพนิ่ง</div>
+        <div class="ws-desc">โหลด best.pt → Detect → แสดงผลด้วย OpenCV + matplotlib</div>
+      </div>
+      <div class="ws-card">
+        <div class="ws-num">JOB 5</div>
+        <div class="ws-icon">👥</div>
+        <div class="ws-title">Face Recognition</div>
+        <div class="ws-desc">กลุ่มละ 5 คน เทรน YOLO11n แยกใบหน้าเพื่อน</div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>
+  <span>31906-2016 Object Detection · JOB 5 Train YOLO11n Custom Model</span><br>
+  วิทยาลัยเทคนิคเลย · สาขาเทคโนโลยีปัญญาประดิษฐ์ · 2569
+  <div style="margin-top:6px;font-size:11px;opacity:.5">Corrections: epochs note (50→100+) · batch parameter เพิ่มเข้า · data.yaml path warning · normalized annotation check</div>
+</footer>
+
+<script>
+// ── COPY ──
+function copyCode(btn){
+  const pre=btn.closest('.code-wrap').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(()=>{btn.textContent='copied!';btn.style.color='#4ade80';setTimeout(()=>{btn.textContent='copy';btn.style.color='';},1500);});
+}
+
+// ── TRAINING SIMULATOR ──
+let trainInterval=null,trainEpoch=0,trainRunning=false;
+const LOG_MSGS=['Scanning dataset...','Downloading yolo11n.pt weights...','AutoAnchor: Best anchors...','Starting training...'];
+
+function startTraining(){
+  if(trainRunning)return;
+  trainRunning=true;
+  document.getElementById('btnTrain').disabled=true;
+  document.getElementById('btnTrain').textContent='⏳ กำลังเทรน...';
+  const totalEpochs=parseInt(document.getElementById('epochSelect').value);
+  const log=document.getElementById('trainLog');
+  log.innerHTML='';
+  LOG_MSGS.forEach((m,i)=>setTimeout(()=>appendLog(log,'info',m),i*300));
+  let ep=0;
+  trainInterval=setInterval(()=>{
+    ep++;
+    const pct=ep/totalEpochs;
+    // simulate decreasing loss, increasing mAP
+    const loss=Math.max(.12,2.5*Math.exp(-ep*.04)+0.1*(Math.random()-.5)*.1);
+    const mAP=Math.min(.95,pct*.85+0.05*(Math.random()-.5)*.1);
+    const prec=Math.min(.98,pct*.9+0.04*(Math.random()-.5)*.05);
+    const rec=Math.min(.95,pct*.88+0.03*(Math.random()-.5)*.05);
+
+    document.getElementById('epochBar').style.width=(pct*100)+'%';
+    document.getElementById('epochBar').textContent=Math.round(pct*100)+'%';
+    document.getElementById('epochVal').textContent=`${ep} / ${totalEpochs}`;
+    document.getElementById('lossBar').style.width=Math.max(5,(1-pct)*80)+'%';
+    document.getElementById('lossBar').textContent=loss.toFixed(3);
+    document.getElementById('lossVal').textContent=loss.toFixed(3);
+    document.getElementById('mapBar').style.width=(mAP*100)+'%';
+    document.getElementById('mapBar').textContent=(mAP*100).toFixed(1)+'%';
+    document.getElementById('mapVal').textContent=(mAP).toFixed(4);
+
+    if(ep%5===0||ep<=3){
+      const cls=(mAP>.7&&ep>10)?'good':ep<5?'info':'warn';
+      appendLog(log,cls,`Epoch ${ep}/${totalEpochs}  loss:${loss.toFixed(3)}  mAP50:${mAP.toFixed(3)}  P:${prec.toFixed(2)} R:${rec.toFixed(2)}`);
+    }
+    if(ep>=totalEpochs){
+      clearInterval(trainInterval);trainRunning=false;
+      appendLog(log,'good',`✅ Training complete! Best mAP50: ${(mAP).toFixed(4)}`);
+      appendLog(log,'good',`💾 Model saved: /content/runs/workshop5/weights/best.pt`);
+      document.getElementById('btnTrain').disabled=false;
+      document.getElementById('btnTrain').textContent='▶ เริ่มจำลอง';
+    }
+  },totalEpochs===50?120:60);
+}
+
+function appendLog(el,type,msg){
+  const div=document.createElement('div');
+  div.className=type==='good'?'log-good':type==='warn'?'log-warn':type==='info'?'log-info':'log-line';
+  div.textContent=msg;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+}
+
+function resetTraining(){
+  if(trainInterval)clearInterval(trainInterval);
+  trainRunning=false;
+  ['epochBar','lossBar','mapBar'].forEach(id=>{document.getElementById(id).style.width=id==='lossBar'?'80%':'0%';});
+  document.getElementById('epochBar').textContent='0%';
+  document.getElementById('lossBar').textContent='high';
+  document.getElementById('mapBar').textContent='—';
+  document.getElementById('epochVal').textContent='0 / 50';
+  document.getElementById('lossVal').textContent='2.45';
+  document.getElementById('mapVal').textContent='0.00';
+  document.getElementById('trainLog').innerHTML='<div class="log-info">// กด "เริ่มจำลอง" เพื่อดูผลการเทรน...</div>';
+  document.getElementById('btnTrain').disabled=false;
+  document.getElementById('btnTrain').textContent='▶ เริ่มจำลอง';
+}
+
+// ── DETECT CANVAS DEMO ──
+(function(){
+  const cvs=document.getElementById('detectCanvas');
+  const ctx=cvs.getContext('2d');
+  const W=cvs.width,H=cvs.height;
+  const grd=ctx.createLinearGradient(0,0,W,H);
+  grd.addColorStop(0,'#fef3c7');grd.addColorStop(1,'#fce7f3');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+
+  // draw fake faces
+  const faces=[
+    {x:60,y:60,w:100,h:130,name:'Alice',conf:.94,color:'#f97316'},
+    {x:220,y:40,w:90,h:120,name:'Bob',conf:.87,color:'#ec4899'},
+    {x:360,y:70,w:85,h:110,name:'Charlie',conf:.78,color:'#7c3aed'},
+  ];
+  faces.forEach(f=>{
+    // face circle
+    ctx.fillStyle='#fde68a';ctx.beginPath();ctx.ellipse(f.x+f.w/2,f.y+f.h/2,f.w*.42,f.h*.45,0,0,Math.PI*2);ctx.fill();
+    // eyes
+    [f.x+f.w*.35,f.x+f.w*.65].forEach(ex=>{ctx.fillStyle='#1c1917';ctx.beginPath();ctx.arc(ex,f.y+f.h*.38,4,0,Math.PI*2);ctx.fill();});
+    // smile
+    ctx.strokeStyle='#1c1917';ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x+f.w/2,f.y+f.h*.5,15,0,Math.PI);ctx.stroke();
+    // bbox
+    ctx.strokeStyle=f.color;ctx.lineWidth=3;ctx.setLineDash([]);ctx.strokeRect(f.x,f.y,f.w,f.h);
+    // top-left label bg
+    const label=`${f.name} ${(f.conf*100).toFixed(0)}%`;
+    ctx.font='bold 13px Sarabun';
+    const tw=ctx.measureText(label).width+10;
+    ctx.fillStyle=f.color;ctx.fillRect(f.x,f.y-22,tw,22);
+    ctx.fillStyle='#fff';ctx.fillText(label,f.x+5,f.y-5);
+  });
+
+  // bottom info
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,H-30,W,30);
+  ctx.fillStyle='#fff';ctx.font='13px Sarabun';ctx.textAlign='left';
+  ctx.fillText('YOLO11n Custom · 3 faces detected · 24ms inference',10,H-9);
+})();
+</script>
+</body>
+</html>
